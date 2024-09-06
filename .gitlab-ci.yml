@@ -15,8 +15,11 @@ build-image:
 
     script:
         - export GIT_SSL_NO_VERIFY=1
-        - git clone https://gitlab.green-rabbit.net/kimata/aqua_config.git
-        - mv aqua_config/rasp-aqua.yaml config.yaml
+        - git clone https://gitlab.green-rabbit.net/kimata/wattmeter-config.git
+        - mv wattmeter-config/sharp_config.yaml config.yaml
+        - mv wattmeter-config/sharp_device.yaml device.yaml
+        - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
+        
         - git config --global --add safe.directory ${PWD}
 
         - docker buildx create --name ${BUILDER} --use
