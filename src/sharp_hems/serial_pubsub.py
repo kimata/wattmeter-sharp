@@ -17,6 +17,7 @@ Options:
 
 import logging
 
+import my_lib.footprint
 import serial
 import zmq
 
@@ -25,7 +26,7 @@ SER_BAUD = 115200
 SER_TIMEOUT = 10
 
 
-def start_server(serial_port, server_port, liveness_file=None):
+def start_server(serial_port, server_port, liveness_file):
     logging.info("Start serial server...")
 
     context = zmq.Context()
@@ -51,8 +52,8 @@ def start_server(serial_port, server_port, liveness_file=None):
 
         logging.debug("send %s %s", header_hex, payload_hex)
         socket.send_string(f"{CH} {header_hex} {payload_hex}")
-        if liveness_file is not None:
-            liveness_file.touch(exist_ok=True)
+
+        my_lib.footprint.update(liveness_file)
 
 
 def start_client(server_host, server_port, handle, func):
@@ -92,6 +93,7 @@ if __name__ == "__main__":
     config = my_lib.config.load(config_file)
 
     dev_cache_file = pathlib.Path(config["device"]["cache"])
+    liveness_file = pathlib.Path(config["liveness"]["file"]["measure"])
 
     def log_data(data):
         logging.info(data)
@@ -101,7 +103,7 @@ if __name__ == "__main__":
 
     if is_server_mode:
         logging.info("Start server")
-        start_server(serial_port, server_port)
+        start_server(serial_port, server_port, liveness_file)
     else:
         logging.info("Start client")
         start_client(server_host, server_port, {"device": {"cache": dev_cache_file}}, process_packet)
