@@ -20,7 +20,6 @@ import pathlib
 import my_lib.fluentd_util
 import my_lib.footprint
 import my_lib.notify_slack
-
 import sharp_hems.device
 import sharp_hems.notify
 import sharp_hems.serial_pubsub

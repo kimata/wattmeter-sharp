@@ -17,7 +17,6 @@ import os
 import pathlib
 
 import my_lib.notify_slack
-
 import sharp_hems.notify
 import sharp_hems.serial_pubsub
 

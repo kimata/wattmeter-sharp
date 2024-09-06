@@ -13,21 +13,7 @@ Options:
 import logging
 
 import my_lib.sensor_data
-
 import sharp_hems.device
-
-# def fetch_data(  # noqa: PLR0913
-#     db_config,
-#     measure,
-#     hostname,
-#     field,
-#     start="-30h",
-#     stop="now()",
-#     every_min=1,
-#     window_min=3,
-#     create_empty=True,
-#     last=False,
-# ):
 
 
 def hems_status_check(config, dev_define_file):
@@ -44,9 +30,9 @@ def hems_status_check(config, dev_define_file):
             "-1h",
         )["valid"]
         if data_valid:
-            logging.info("{name:0s}: OK".format(name=dev_name))
+            logging.info("%0s: OK", dev_name)
         else:
-            logging.error("{name:0s}: NG".format(name=dev_name))
+            logging.error("%0s: NG", dev_name)
 
 
 ######################################################################

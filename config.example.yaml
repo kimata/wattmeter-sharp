@@ -5,9 +5,9 @@ fluentd:
     host: proxy.green-rabbit.net
 
     data:
-      tag: hems
-      label: sharp
-      field: power
+        tag: hems
+        label: sharp
+        field: power
 
 influxdb:
     url: http://proxy.green-rabbit.net:8086
@@ -17,4 +17,4 @@ influxdb:
 
 liveness:
     file:
-      measure: /dev/shm/healthz
+        measure: /dev/shm/healthz

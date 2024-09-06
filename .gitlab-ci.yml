@@ -1,4 +1,3 @@
----
 image: registry.green-rabbit.net:5000/kimata/local_ubuntu:240730E
 
 stages:
@@ -19,20 +18,19 @@ build-image:
         - mv wattmeter-config/sharp_config.yaml config.yaml
         - mv wattmeter-config/sharp_device.yaml device.yaml
         - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
-        
+
         - git config --global --add safe.directory ${PWD}
 
         - docker buildx create --name ${BUILDER} --use
         - docker buildx use ${BUILDER}
-        - docker buildx build --platform linux/amd64,linux/arm64/v8 --cache-from type=registry,ref=${CI_REGISTRY_IMAGE}:cache --cache-to type=registry,ref=${CI_REGISTRY_IMAGE}:cache
-          --build-arg IMAGE_BUILD_DATE=$(date --iso-8601=seconds) --push --tag ${CI_REGISTRY_IMAGE} .
+        - docker buildx build --platform linux/amd64,linux/arm64/v8 --cache-from type=registry,ref=${CI_REGISTRY_IMAGE}:cache --cache-to type=registry,ref=${CI_REGISTRY_IMAGE}:cache --build-arg IMAGE_BUILD_DATE=$(date --iso-8601=seconds) --push --tag ${CI_REGISTRY_IMAGE} .
 
 test-logger:
     stage: test
-    
+
     variables:
         HEMS_HOST_NAME: proxy.green-rabbit.net
-        
+
     script:
         - docker pull ${CI_REGISTRY_IMAGE}
         - docker run -t --label job=${CI_JOB_NAME} ${CI_REGISTRY_IMAGE} ./src/sharp_hems_logger.py -s ${HEMS_HOST_NAME} -T
@@ -48,13 +46,13 @@ deploy:
     image:
         name: bitnami/kubectl:latest
         entrypoint: ['']
-        
+
     script:
         - kubectl config get-contexts
         - kubectl config use-context kimata/rasp-aqua:pod-rollout
         - kubectl --insecure-skip-tls-verify=true rollout restart -n hems deployment wattmeter-sharp-server
         - kubectl --insecure-skip-tls-verify=true rollout restart -n hems deployment wattmeter-sharp-client
-        
+
     rules:
         # NOTE: 自動実行ではデプロイしない
         - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -76,4 +74,4 @@ renovate:
           when: never
         - if: $CI_PIPELINE_SOURCE == "schedule"
         - changes:
-              - renovate.json
+            - renovate.json
