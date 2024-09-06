@@ -1,63 +1,54 @@
 image: docker:23.0
-
 stages:
-  - build
-  - test
-  - deploy
-
+    - build
+    - test
+    - deploy
 # 本番設定ファイルで，問題なく動くかチェック
 build-image:
-  stage: build
-
-  image: registry.green-rabbit.net:5000/kimata/local_ubuntu:230812D
-
-  script:
-    # - docker rm $(docker ps -a --filter 'status=exited' -q) || true
-    - export GIT_SSL_NO_VERIFY=1
-    - git clone https://gitlab.green-rabbit.net/kimata/wattmeter_config.git
-    - mv wattmeter_config/sharp_config.yaml config.yaml
-    - mv wattmeter_config/sharp_device.yaml device.yaml
-    - mv wattmeter_config/sharp_dev_id.dat data/dev_id.dat
-    - docker pull ${CI_REGISTRY_IMAGE} || true
-    - docker build . -t ${CI_REGISTRY_IMAGE}
-    - docker push ${CI_REGISTRY_IMAGE}
-
+    stage: build
+    image: registry.green-rabbit.net:5000/kimata/local_ubuntu:230812D
+    script:
+        # - docker rm $(docker ps -a --filter 'status=exited' -q) || true
+        - export GIT_SSL_NO_VERIFY=1
+        - git clone https://gitlab.green-rabbit.net/kimata/wattmeter_config.git
+        - mv wattmeter_config/sharp_config.yaml config.yaml
+        - mv wattmeter_config/sharp_device.yaml device.yaml
+        - mv wattmeter_config/sharp_dev_id.dat data/dev_id.dat
+        - docker pull ${CI_REGISTRY_IMAGE} || true
+        - docker build . -t ${CI_REGISTRY_IMAGE}
+        - docker push ${CI_REGISTRY_IMAGE}
 test-logger:
-  stage: test
-
-  variables:
-    HEMS_HOST_NAME: proxy.green-rabbit.net
-
-  script:
-    - docker pull ${CI_REGISTRY_IMAGE}
-    - docker run -t --label job=${CI_JOB_NAME} ${CI_REGISTRY_IMAGE} ./app/sharp_hems_logger.py -s ${HEMS_HOST_NAME} -T
-
+    stage: test
+    variables:
+        HEMS_HOST_NAME: proxy.green-rabbit.net
+    script:
+        - docker pull ${CI_REGISTRY_IMAGE}
+        - docker run -t --label job=${CI_JOB_NAME} ${CI_REGISTRY_IMAGE} ./app/sharp_hems_logger.py -s ${HEMS_HOST_NAME} -T
 deploy-server:
-  stage: deploy
-  image:
-    name: bitnami/kubectl:latest
-    entrypoint: [""]
-  script:
-    - kubectl config get-contexts
-    - kubectl config use-context kimata/wattmeter_sharp:pod-rollout
-    - kubectl --insecure-skip-tls-verify=true rollout restart -n hems deployment wattmeter-sharp-server
-  rules:
-    - changes:
-        - app/sharp_hems_logger.py
-        - lib/serial_pubsub.py*
-        - lib/sniffer.py
-
+    stage: deploy
+    image:
+        name: bitnami/kubectl:latest
+        entrypoint: [""]
+    script:
+        - kubectl config get-contexts
+        - kubectl config use-context kimata/wattmeter_sharp:pod-rollout
+        - kubectl --insecure-skip-tls-verify=true rollout restart -n hems deployment wattmeter-sharp-server
+    rules:
+        - changes:
+            - app/sharp_hems_logger.py
+            - lib/serial_pubsub.py*
+            - lib/sniffer.py
 deploy-client:
-  stage: deploy
-  image:
-    name: bitnami/kubectl:latest
-    entrypoint: [""]
-  script:
-    - kubectl config get-contexts
-    - kubectl config use-context kimata/wattmeter_sharp:pod-rollout
-    - kubectl --insecure-skip-tls-verify=true rollout restart -n hems deployment wattmeter-sharp-client
-  rules:
-    - changes:
-        - app/sharp_config.yaml
-        - lib/serial_pubsub.py*
-        - lib/sniffer.py
+    stage: deploy
+    image:
+        name: bitnami/kubectl:latest
+        entrypoint: [""]
+    script:
+        - kubectl config get-contexts
+        - kubectl config use-context kimata/wattmeter_sharp:pod-rollout
+        - kubectl --insecure-skip-tls-verify=true rollout restart -n hems deployment wattmeter-sharp-client
+    rules:
+        - changes:
+            - app/sharp_config.yaml
+            - lib/serial_pubsub.py*
+            - lib/sniffer.py
