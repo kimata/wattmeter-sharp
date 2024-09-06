@@ -58,7 +58,7 @@ def process_packet(handle, header, payload):
 
     if test_mode:
         sharp_hems.sniffer.process_packet(
-            header, payload, handle, lambda _: (logging.info("OK"), os._exit(0))
+            handle, header, payload, lambda _: (logging.info("OK"), os._exit(0))
         )
     else:
         sharp_hems.sniffer.process_packet(
