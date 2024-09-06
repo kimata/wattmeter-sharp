@@ -20,6 +20,7 @@ import pathlib
 import my_lib.fluentd_util
 import my_lib.footprint
 import my_lib.notify_slack
+
 import sharp_hems.device
 import sharp_hems.notify
 import sharp_hems.serial_pubsub
@@ -66,8 +67,8 @@ def process_packet(handle, header, payload):
             payload,
             lambda data: fluent_send(
                 handle["sender"],
-                config["fluent"]["data"]["label"],
-                config["fluent"]["data"]["field"],
+                config["fluentd"]["data"]["label"],
+                config["fluentd"]["data"]["field"],
                 data,
                 handle["liveness"],
             ),
@@ -111,10 +112,10 @@ if __name__ == "__main__":
 
     logging.info(
         "Initialize Fluentd sender (host: %s, tag: %s)",
-        config["fluent"]["host"],
-        config["fluent"]["data"]["tag"],
+        config["fluentd"]["host"],
+        config["fluentd"]["data"]["tag"],
     )
-    sender = my_lib.fluentd_util.get_handle(config["fluent"]["data"]["tag"], host=config["fluent"]["host"])
+    sender = my_lib.fluentd_util.get_handle(config["fluentd"]["data"]["tag"], host=config["fluentd"]["host"])
 
     start(
         {
@@ -124,8 +125,8 @@ if __name__ == "__main__":
                 "cache": dev_cache_file,
             },
             "data": {
-                "label": config["fluent"]["data"]["label"],
-                "field": config["fluent"]["data"]["field"],
+                "label": config["fluentd"]["data"]["label"],
+                "field": config["fluentd"]["data"]["field"],
             },
             "liveness": liveness_file,
         }
