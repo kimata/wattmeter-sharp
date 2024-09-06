@@ -49,7 +49,7 @@ deploy:
 
     script:
         - kubectl config get-contexts
-        - kubectl config use-context kimata/rasp-aqua:pod-rollout
+        - kubectl config use-context kimata/wattmeter-sharp:pod-rollout
         - kubectl --insecure-skip-tls-verify=true rollout restart -n hems deployment wattmeter-sharp-server
         - kubectl --insecure-skip-tls-verify=true rollout restart -n hems deployment wattmeter-sharp-client
 
