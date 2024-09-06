@@ -1,54 +1,76 @@
-image: docker:23.0
+---
+image: registry.green-rabbit.net:5000/kimata/local_ubuntu:240730E
+
 stages:
-    - build
+    - build-image
     - test
     - deploy
-# 本番設定ファイルで，問題なく動くかチェック
+    - renovate
+
 build-image:
-    stage: build
-    image: registry.green-rabbit.net:5000/kimata/local_ubuntu:230812D
+    stage: build-image
+
+    variables:
+        BUILDER: arm_builder
+
     script:
-        # - docker rm $(docker ps -a --filter 'status=exited' -q) || true
         - export GIT_SSL_NO_VERIFY=1
-        - git clone https://gitlab.green-rabbit.net/kimata/wattmeter_config.git
-        - mv wattmeter_config/sharp_config.yaml config.yaml
-        - mv wattmeter_config/sharp_device.yaml device.yaml
-        - mv wattmeter_config/sharp_dev_id.dat data/dev_id.dat
-        - docker pull ${CI_REGISTRY_IMAGE} || true
-        - docker build . -t ${CI_REGISTRY_IMAGE}
-        - docker push ${CI_REGISTRY_IMAGE}
+        - git clone https://gitlab.green-rabbit.net/kimata/aqua_config.git
+        - mv aqua_config/rasp-aqua.yaml config.yaml
+        - git config --global --add safe.directory ${PWD}
+
+        - docker buildx create --name ${BUILDER} --use
+        - docker buildx use ${BUILDER}
+        - docker buildx build --platform linux/amd64,linux/arm64/v8 --cache-from type=registry,ref=${CI_REGISTRY_IMAGE}:cache --cache-to type=registry,ref=${CI_REGISTRY_IMAGE}:cache
+          --build-arg IMAGE_BUILD_DATE=$(date --iso-8601=seconds) --push --tag ${CI_REGISTRY_IMAGE} .
+
 test-logger:
     stage: test
+    
     variables:
         HEMS_HOST_NAME: proxy.green-rabbit.net
+        
     script:
         - docker pull ${CI_REGISTRY_IMAGE}
-        - docker run -t --label job=${CI_JOB_NAME} ${CI_REGISTRY_IMAGE} ./app/sharp_hems_logger.py -s ${HEMS_HOST_NAME} -T
-deploy-server:
+        - docker run -t --label job=${CI_JOB_NAME} ${CI_REGISTRY_IMAGE} ./src/sharp_hems_logger.py -s ${HEMS_HOST_NAME} -T
+
+deploy:
     stage: deploy
+
+    needs:
+        - test-logger
+
+    dependencies: []
+
     image:
         name: bitnami/kubectl:latest
-        entrypoint: [""]
+        entrypoint: ['']
+        
     script:
         - kubectl config get-contexts
-        - kubectl config use-context kimata/wattmeter_sharp:pod-rollout
+        - kubectl config use-context kimata/rasp-aqua:pod-rollout
         - kubectl --insecure-skip-tls-verify=true rollout restart -n hems deployment wattmeter-sharp-server
-    rules:
-        - changes:
-            - app/sharp_hems_logger.py
-            - lib/serial_pubsub.py*
-            - lib/sniffer.py
-deploy-client:
-    stage: deploy
-    image:
-        name: bitnami/kubectl:latest
-        entrypoint: [""]
-    script:
-        - kubectl config get-contexts
-        - kubectl config use-context kimata/wattmeter_sharp:pod-rollout
         - kubectl --insecure-skip-tls-verify=true rollout restart -n hems deployment wattmeter-sharp-client
+        
     rules:
+        # NOTE: 自動実行ではデプロイしない
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+          when: never
+        - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+          when: never
+        - when: on_success
+
+renovate:
+    stage: renovate
+    image:
+        name: registry.green-rabbit.net:5000/kimata/local_renovate:38
+
+        entrypoint: ['']
+    script:
+        - renovate --platform gitlab --token ${RENOVATE_TOKEN} --endpoint ${CI_SERVER_URL}/api/v4 ${CI_PROJECT_PATH}
+    rules:
+        - if: $CI_COMMIT_BRANCH != "master"
+          when: never
+        - if: $CI_PIPELINE_SOURCE == "schedule"
         - changes:
-            - app/sharp_config.yaml
-            - lib/serial_pubsub.py*
-            - lib/sniffer.py
+              - renovate.json

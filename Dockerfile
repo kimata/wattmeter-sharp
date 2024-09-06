@@ -1,32 +1,38 @@
-FROM python:3.11.4-bookworm as build
+FROM python:3.12.5-bookworm AS build
 
-RUN apt-get update && apt-get install --assume-yes \
-    gcc \
-    curl \
-    python3 \
-    python3-dev \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    apt-get update && apt-get install --no-install-recommends --assume-yes \
+    clang \
+    curl
 
-WORKDIR /opt/wattmeter_sharp
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PATH=/root/.rye/shims/:$PATH
 
-RUN curl -sSL https://install.python-poetry.org | python3 -
-ENV PATH="/root/.local/bin:$PATH"
+RUN curl -sSf https://rye.astral.sh/get | RYE_NO_AUTO_INSTALL=1 RYE_INSTALL_OPTION="--yes" bash
 
-COPY pyproject.toml .
+RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=.python-version,target=.python-version \
+    --mount=type=bind,source=README.md,target=README.md \
+    rye lock
 
-RUN poetry config virtualenvs.create false \
- && poetry install \
- && rm -rf ~/.cache
+RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=README.md,target=README.md \
+    --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.lock
 
-FROM python:3.11.4-slim-bookworm as prod
+
+FROM python:3.12.5-slim-bookworm AS prod
+
+ARG IMAGE_BUILD_DATE
 
 ENV TZ=Asia/Tokyo
+ENV IMAGE_BUILD_DATE=${IMAGE_BUILD_DATE}
 
-COPY --from=build /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=build /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 
-WORKDIR /opt/wattmeter_sharp
+WORKDIR /opt/wattmeter-sharp
 
 COPY . .
 
-CMD ["./app/sharp_hems_logger.py"]
+CMD ["./src/sharp_hems_logger.py"]

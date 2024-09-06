@@ -1,1 +1,4 @@
 .git/
+.venv/
+.mypy_cache/
+.pytest_cache/
