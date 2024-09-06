@@ -1,15 +1,20 @@
-SERIAL:
-    PORT: /dev/ttyUSB0
-FLUENT:
-    HOST: proxy.green-rabbit.net
-    DATA:
-        TAG: hems
-        LABEL: sharp
-        FIELD: power
-INFLUXDB:
-    URL: http://proxy.green-rabbit.net:8086
-    TOKEN: strBCB9segqccgxsR5Xe_9RnCqkBFYX9aOKvxVR4lr3iLEb7HXuGqsN40YU6DIb6TZm9bvKLW5OWQS7sB8AQbQ==
-    ORG: home
-    BUCKET: sensor
-LIVENESS:
-    FILE: /dev/shm/healthz
+serial:
+    port: /dev/ttyUSB0
+
+fluentd:
+    host: proxy.green-rabbit.net
+
+    data:
+      tag: hems
+      label: sharp
+      field: power
+
+influxdb:
+    url: http://proxy.green-rabbit.net:8086
+    token: strBCB9segqccgxsR5Xe_9RnCqkBFYX9aOKvxVR4lr3iLEb7HXuGqsN40YU6DIb6TZm9bvKLW5OWQS7sB8AQbQ==
+    org: home
+    bucket: sensor
+
+liveness:
+    file:
+      measure: /dev/shm/healthz

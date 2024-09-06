@@ -1,35 +1,56 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""
+Liveness のチェックを行います
+
+Usage:
+  healthz.py [-c CONFIG] [-p PORT] [-d]
+
+Options:
+  -c CONFIG         : CONFIG を設定ファイルとして読み込んで実行します．[default: config.yaml]
+  -d                : デバッグモードで動作します．
+"""
+
+import logging
 import pathlib
-import datetime
-import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), os.pardir, "lib"))
+import my_lib.healthz
 
-from config import load_config
 
-config = load_config()
+def check_liveness(target_list):
+    for target in target_list:
+        if not my_lib.healthz.check_liveness(target["name"], target["liveness_file"], target["interval"]):
+            return False
+    return True
 
-liveness_file = pathlib.Path(config["LIVENESS"]["FILE"])
 
-if not liveness_file.exists():
-    print("Not executed.", file=sys.stderr)
-    sys.exit(-1)
+######################################################################
+if __name__ == "__main__":
+    import docopt
+    import my_lib.config
+    import my_lib.logger
 
-elapsed = datetime.datetime.now() - datetime.datetime.fromtimestamp(
-    liveness_file.stat().st_mtime
-)
+    args = docopt.docopt(__doc__)
 
-# NOTE: 6分間隔でパケットが飛んでくる
-if elapsed.seconds > (6 * 60 + 10):
-    print(
-        "Execution interval is too long. ({elapsed:,} sec)".format(
-            elapsed=elapsed.seconds
-        ),
-        file=sys.stderr,
-    )
-    sys.exit(-1)
+    config_file = args["-c"]
+    port = args["-p"]
+    debug_mode = args["-d"]
 
-print("OK.", file=sys.stderr)
-sys.exit(0)
+    my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
+
+    config = my_lib.config.load(config_file)
+
+    target_list = [
+        {
+            "name": name,
+            "liveness_file": pathlib.Path(config["liveness"]["file"][name]),
+            "interval": 6 * 60,  # NOTE: 6分間隔でパケットが飛んでくる
+        }
+        for name in ["measure"]
+    ]
+
+    if check_liveness(target_list, port):
+        logging.info("OK.")
+        sys.exit(0)
+    else:
+        sys.exit(-1)
