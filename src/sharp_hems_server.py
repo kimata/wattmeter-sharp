@@ -16,9 +16,10 @@ import logging
 import os
 import pathlib
 
-import my_lib.notify_slack
 import sharp_hems.notify
 import sharp_hems.serial_pubsub
+
+SCHEMA_CONFIG = "config.schema"
 
 
 def start():
@@ -31,6 +32,8 @@ def start():
 
 ######################################################################
 if __name__ == "__main__":
+    import pathlib
+
     import docopt
     import my_lib.config
     import my_lib.logger
@@ -45,7 +48,7 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file)
+    config = my_lib.config.load(config_file, pathlib.Path(SCHEMA_CONFIG))
 
     liveness_file = pathlib.Path(config["liveness"]["file"]["measure"])
 

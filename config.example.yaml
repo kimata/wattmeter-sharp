@@ -15,6 +15,10 @@ influxdb:
     org: home
     bucket: sensor
 
+device:
+    define: device.example.yaml
+    cache: data/dev_id.dat
+    
 liveness:
     file:
         measure: /dev/shm/healthz

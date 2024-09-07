@@ -19,14 +19,13 @@ import pathlib
 
 import my_lib.fluentd_util
 import my_lib.footprint
-import my_lib.notify_slack
 
 import sharp_hems.device
 import sharp_hems.notify
 import sharp_hems.serial_pubsub
 import sharp_hems.sniffer
 
-DEV_CONFIG = "device.yaml"
+SCHEMA_CONFIG = "config.schema"
 
 
 def fluent_send(sender, label, field, data, liveness_file):
@@ -85,6 +84,8 @@ def start(handle):
 
 ######################################################################
 if __name__ == "__main__":
+    import pathlib
+
     import docopt
     import my_lib.config
     import my_lib.logger
@@ -99,7 +100,7 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file)
+    config = my_lib.config.load(config_file, pathlib.Path(SCHEMA_CONFIG))
 
     dev_define_file = pathlib.Path(config["device"]["define"])
     dev_cache_file = pathlib.Path(config["device"]["cache"])

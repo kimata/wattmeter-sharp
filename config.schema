@@ -1,0 +1,151 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+        "serial": {
+            "type": "object",
+            "properties": {
+                "port": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "port"
+            ]
+        },
+        "fluentd": {
+            "type": "object",
+            "properties": {
+                "host": {
+                    "type": "string"
+                },
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "tag": {
+                            "type": "string"
+                        },
+                        "label": {
+                            "type": "string"
+                        },
+                        "field": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "field",
+                        "label",
+                        "tag"
+                    ]
+                }
+            },
+            "required": [
+                "data",
+                "host"
+            ]
+        },
+        "influxdb": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "org": {
+                    "type": "string"
+                },
+                "bucket": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "bucket",
+                "org",
+                "token",
+                "url"
+            ]
+        },
+        "device": {
+            "type": "object",
+            "properties": {
+                "define": {
+                    "type": "string"
+                },
+                "cache": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "cache",
+                "define"
+            ]
+        },
+        "liveness": {
+            "type": "object",
+            "properties": {
+                "file": {
+                    "type": "object",
+                    "properties": {
+                        "measure": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "measure"
+                    ]
+                }
+            },
+            "required": [
+                "file"
+            ]
+        },
+        "slack": {
+            "type": "object",
+            "properties": {
+                "bot_token": {
+                    "type": "string"
+                },
+                "from": {
+                    "type": "string"
+                },
+                "error": {
+                    "type": "object",
+                    "properties": {
+                        "channel": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "name"
+                            ]
+                        },
+                        "interval_min": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "channel",
+                        "interval_min"
+                    ]
+                }
+            },
+            "required": [
+                "bot_token",
+                "error",
+                "from"
+            ]
+        }
+    },
+    "required": [
+        "device",
+        "fluentd",
+        "influxdb",
+        "liveness",
+        "serial"
+    ]
+}

@@ -13,7 +13,10 @@ Options:
 import logging
 
 import my_lib.sensor_data
+
 import sharp_hems.device
+
+SCHEMA_CONFIG = "config.schema"
 
 
 def hems_status_check(config, dev_define_file):
@@ -50,7 +53,7 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file)
+    config = my_lib.config.load(config_file, pathlib.Path(SCHEMA_CONFIG))
 
     dev_define_file = pathlib.Path(config["device"]["define"])
 

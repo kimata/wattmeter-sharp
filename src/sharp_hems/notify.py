@@ -2,14 +2,14 @@
 import logging
 import traceback
 
-import my_lib.notify_slack
+import my_lib.notify.slack
 
 
 def error(config):
     logging.exception("Failed.")
 
     if "slack" in config:
-        my_lib.notify_slack.error(
+        my_lib.notify.slack.error(
             config["slack"]["bot_token"],
             config["slack"]["error"]["channel"]["name"],
             config["slack"]["from"],
