@@ -17,7 +17,7 @@ zmq = "^0.0.0"
 
 [tool.poetry.group.test.dependencies]
 flaky = "^3.7.0"
-pytest-cov = "^4.1.0"
+pytest-cov = "^6.0.0"
 pytest-freezegun = "^0.4.2"
 pytest-html = "^3.2.0"
 pytest-mock = "^3.11.1"
