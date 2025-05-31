@@ -1,4 +1,4 @@
-image: docker:23.0
+image: docker:28.2
 
 stages:
   - build
