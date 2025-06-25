@@ -12,7 +12,7 @@ dependencies = [
     "docopt-ng>=0.9.0",
     "fluent-logger>=0.11.1",
     "influxdb-client[ciso]>=1.44.0",
-    "my-lib @ git+https://github.com/kimata/my-py-lib@d825a099105b3b13a8e3032155d458f57f635e23",
+    "my-lib @ git+https://github.com/kimata/my-py-lib@da0b7962575ab43a5b27aec90b88832d8934c658",
     "zmq>=0.0.0",
     "pyserial>=3.5",
 ]
@@ -27,9 +27,8 @@ packages = ["src/sharp_hems"]
 [tool.hatch.metadata]
 allow-direct-references = true
 
-[tool.rye]
-managed = true
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "flaky>=3.8.1",
     "playwright>=1.45.1",
     "pytest-cov>=5.0.0",

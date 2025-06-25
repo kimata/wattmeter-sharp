@@ -7,19 +7,19 @@ RUN --mount=type=cache,target=/var/lib/apt,sharing=locked \
     curl
 
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV PATH=/root/.rye/shims/:$PATH
 
-RUN curl -sSf https://rye.astral.sh/get | RYE_NO_AUTO_INSTALL=1 RYE_INSTALL_OPTION="--yes" bash
-
-RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=.python-version,target=.python-version \
-    --mount=type=bind,source=README.md,target=README.md \
-    rye lock
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
 RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=README.md,target=README.md \
-    --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir -r requirements.lock
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-install-project --no-dev
+
+RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=cache,target=/root/.cache/uv \
+    uv export --frozen --no-hashes --format requirements-txt > requirements.txt && \
+    pip install --no-cache-dir -r requirements.txt
 
 
 FROM python:3.12.5-slim-bookworm AS prod
