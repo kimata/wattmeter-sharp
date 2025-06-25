@@ -31,8 +31,10 @@ build-image:
         - 'echo "Building: ${CI_REGISTRY_IMAGE}:${TAG}"'
 
         - export GIT_SSL_NO_VERIFY=1
-        - git clone https://gitlab.green-rabbit.net/kimata/hems_config.git
-        - mv hems_config/rasp-shutter.yaml config.yaml
+        - git clone https://gitlab.green-rabbit.net/kimata/wattmeter-config.git
+        - mv wattmeter-config/sharp_config.yaml config.yaml
+        - mv wattmeter-config/sharp_device.yaml device.yaml
+        - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
 
         - docker buildx create --driver docker-container --name ${BUILDER} --use --config /etc/buildkitd.toml
         - docker buildx use ${BUILDER}
