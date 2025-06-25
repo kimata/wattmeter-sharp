@@ -41,6 +41,8 @@ testem.log
 /typings
 /flask/data/
 /tests/evidence/
+config.yaml
+device.yaml
 
 # System files
 .DS_Store
