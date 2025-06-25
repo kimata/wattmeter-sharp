@@ -12,7 +12,7 @@ dependencies = [
     "docopt-ng>=0.9.0",
     "fluent-logger>=0.11.1",
     "influxdb-client[ciso]>=1.44.0",
-    "my-lib @ git+https://github.com/kimata/my-py-lib@da0b7962575ab43a5b27aec90b88832d8934c658",
+    "my-lib @ git+https://github.com/kimata/my-py-lib@8d62ee7f13ee0c744a8a451a7ee9abf21339b1aa",
     "pyzmq>=26.4.0",
     "pyserial>=3.5",
 ]
