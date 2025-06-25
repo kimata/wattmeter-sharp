@@ -3,14 +3,14 @@
 センサーから収集した消費電力データを Fluentd を使って送信します．
 
 Usage:
-  sharp_hmes_logger.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-T] [-d]
+  sharp_hmes_logger.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-T] [-D]
 
 Options:
   -c CONFIG         : 設定ファイルを指定します． [default: config.yaml]
   -s SERVER_HOST    : サーバーのホスト名を指定します． [default: localhost]
   -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します． [default: 4444]
   -T                : テストモードで動作します．
-  -d                : デバッグモードで動作します．
+  -D                : デバッグモードで動作します．
 """
 
 import logging
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     server_host = os.environ.get("HEMS_SERVER_HOST", args["-s"])
     server_port = int(os.environ.get("HEMS_SERVER_PORT", args["-p"]))
     test_mode = args["-T"]
-    debug_mode = args["-d"]
+    debug_mode = args["-D"]
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 

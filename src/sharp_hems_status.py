@@ -3,11 +3,11 @@
 定義されたデバイスに対しで電力データが取得できているかチェックします．
 
 Usage:
-  sharp_hmes_status.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-T] [-d]
+  sharp_hmes_status.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-T] [-D]
 
 Options:
   -c CONFIG         : 設定ファイルを指定します． [default: config.yaml]
-  -d                : デバッグモードで動作します．
+  -D                : デバッグモードで動作します．
 """
 
 import logging
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     args = docopt.docopt(__doc__)
 
     config_file = args["-c"]
-    debug_mode = args["-d"]
+    debug_mode = args["-D"]
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
