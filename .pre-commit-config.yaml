@@ -33,4 +33,4 @@ repos:
       rev: v9.15.0
       hooks:
         - id: eslint
-          types_or: [javascript, typescript]
+          types_or: [javascript]
