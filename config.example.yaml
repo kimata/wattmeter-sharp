@@ -1,24 +1,19 @@
 serial:
-    port: /dev/ttyUSB0
-
+  port: /dev/ttyUSB0
 fluentd:
-    host: proxy.green-rabbit.net
-
-    data:
-        tag: hems
-        label: sharp
-        field: power
-
+  host: proxy.green-rabbit.net
+  data:
+    tag: hems
+    label: sharp
+    field: power
 influxdb:
-    url: http://proxy.green-rabbit.net:8086
-    token: strBCB9segqccgxsR5Xe_9RnCqkBFYX9aOKvxVR4lr3iLEb7HXuGqsN40YU6DIb6TZm9bvKLW5OWQS7sB8AQbQ==
-    org: home
-    bucket: sensor
-
+  url: http://proxy.green-rabbit.net:8086
+  token: strBCB9segqccgxsR5Xe_9RnCqkBFYX9aOKvxVR4lr3iLEb7HXuGqsN40YU6DIb6TZm9bvKLW5OWQS7sB8AQbQ==
+  org: home
+  bucket: sensor
 device:
-    define: device.example.yaml
-    cache: data/dev_id.dat
-
+  define: device.example.yaml
+  cache: data/dev_id.dat
 liveness:
-    file:
-        measure: /dev/shm/healthz
+  file:
+    measure: /dev/shm/healthz

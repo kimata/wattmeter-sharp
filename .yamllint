@@ -1,0 +1,11 @@
+extends: default
+rules:
+  indentation:
+    spaces: 4
+    indent-sequences: consistent
+  new-lines:
+    type: unix
+  line-length:
+    max: 120
+  trailing-spaces: disable
+  document-start: disable

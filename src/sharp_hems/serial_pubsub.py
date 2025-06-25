@@ -77,6 +77,7 @@ if __name__ == "__main__":
     import docopt
     import my_lib.config
     import my_lib.logger
+
     import sharp_hems.sniffer
 
     args = docopt.docopt(__doc__)
