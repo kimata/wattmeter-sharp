@@ -1,0 +1,19 @@
+cache-dir = "~/.cache/ruff"
+
+line-length = 110
+indent-width = 4
+
+[lint]
+select = ["ALL"]
+ignore = ["D100", "D101", "D102", "D211","D212", "FBT002", "BLE001", "RET505", "TRY300", "FBT003", "RUF001", "RUF002", "RUF003", "RUF012", "COM812", "D103", "D400", "D415", "ANN", "N806", "PLR2004", "ERA001", "PLW0602"]
+
+fixable = ["I"]
+unfixable = []
+
+extend-select = ["I"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

@@ -13,7 +13,6 @@ Options:
 import logging
 
 import my_lib.sensor_data
-
 import sharp_hems.device
 
 SCHEMA_CONFIG = "config.schema"

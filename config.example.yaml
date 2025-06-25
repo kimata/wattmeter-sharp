@@ -18,7 +18,7 @@ influxdb:
 device:
     define: device.example.yaml
     cache: data/dev_id.dat
-    
+
 liveness:
     file:
         measure: /dev/shm/healthz
