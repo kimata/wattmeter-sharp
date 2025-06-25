@@ -72,21 +72,12 @@ tag-latest:
         - when: on_success
 
 
-deploy-webapp:
+deploy:
     stage: deploy
 
     needs:
         - generate-tag
-        - job: test-walk-through
-          artifacts: false
-        - job: test-playwright
-          artifacts: false
-        - job: test-playwright-docker
-          artifacts: false
-        - job: test-playwright-docker-demo
-          artifacts: false
-        - job: test-healthz-docker
-          artifacts: false
+        - job: test-logger
 
     image:
         name: bitnami/kubectl:latest
