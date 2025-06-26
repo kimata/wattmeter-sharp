@@ -80,6 +80,66 @@ def create_mock_socket_context(dump_file_path="tests/data/packet.dump"):
     return mock_context
 
 
+def mock_serial_server(dump_file_path="tests/data/packet.dump"):
+    """
+    serial_pubsub.start_serverをモックして、packet.dumpからデータを読み込むデコレータ
+
+    このデコレータを使用すると、シリアルポートとZMQコンテキストの両方がモックされ、
+    packet.dumpファイルから読み込んだデータでシリアルサーバーのテストが可能になります。
+
+    Args:
+        dump_file_path: packet.dumpファイルのパス (デフォルト: "tests/data/packet.dump")
+
+    Usage:
+        @mock_serial_server()
+        def test_server():
+            # この中でserial_pubsub.start_serverが呼ばれると、
+            # packet.dumpからデータが読み込まれ、シリアルデータとして返される
+            sharp_hems.serial_pubsub.start_server("/dev/mock", 4444, liveness_file)
+
+    """
+
+    def decorator(test_func):
+        def wrapper(*args, **kwargs):
+            # シリアルポートとZMQコンテキストをモック
+            mock_serial = create_mock_serial_server(dump_file_path)
+
+            # ZMQソケットとシリアルをモック
+            received_messages = []
+
+            class MockZMQSocket:
+                def bind(self, address):
+                    pass
+
+                def send_string(self, message):
+                    received_messages.append(message)
+                    logging.info("ZMQ sent: %s", message)
+                    # 3つのメッセージを受信したらサーバーを停止
+                    if len(received_messages) >= 3:
+                        import sharp_hems.serial_pubsub
+
+                        sharp_hems.serial_pubsub.stop_server()
+
+            class MockZMQContext:
+                def socket(self, socket_type):  # noqa: ARG002
+                    return MockZMQSocket()
+
+            with (
+                mock.patch("sharp_hems.serial_pubsub.serial.Serial") as mock_serial_class,
+                mock.patch("sharp_hems.serial_pubsub.zmq.Context") as mock_zmq_context,
+            ):
+                mock_serial_class.return_value = mock_serial
+                mock_zmq_context.return_value = MockZMQContext()
+
+                # received_messagesをテスト関数に渡せるように、kwargsに追加
+                kwargs["received_messages"] = received_messages
+                return test_func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
 def mock_serial_pubsub_client(dump_file_path="tests/data/packet.dump"):
     """
     serial_pubsub.start_clientをモックして、packet.dumpからデータを読み込むデコレータ
@@ -273,49 +333,25 @@ def test_sniffer():
     assert len(sense_data_list) != 0
 
 
-def test_serial_server():
+@mock_serial_server()
+def test_serial_server(**kwargs):
     """start_serverのテスト（シリアルポートをモック）"""
     import threading
     import time
 
     import sharp_hems.serial_pubsub
 
-    # シリアルポートをモック
-    mock_serial = create_mock_serial_server()
-
-    # ZMQソケットとシリアルをモック
-    received_messages = []
-
-    class MockZMQSocket:
-        def bind(self, address):
-            pass
-
-        def send_string(self, message):
-            received_messages.append(message)
-            logging.info("ZMQ sent: %s", message)
-            # 3つのメッセージを受信したらサーバーを停止
-            if len(received_messages) >= 3:
-                sharp_hems.serial_pubsub.stop_server()
-
-    class MockZMQContext:
-        def socket(self, socket_type):  # noqa: ARG002
-            return MockZMQSocket()
+    # デコレータから渡されたreceived_messagesを取得
+    received_messages = kwargs["received_messages"]
 
     # liveness_fileのモック
     liveness_file = pathlib.Path("tests/evidence/test_liveness.txt")
 
     def run_server():
-        with (
-            mock.patch("sharp_hems.serial_pubsub.serial.Serial") as mock_serial_class,
-            mock.patch("sharp_hems.serial_pubsub.zmq.Context") as mock_zmq_context,
-        ):
-            mock_serial_class.return_value = mock_serial
-            mock_zmq_context.return_value = MockZMQContext()
-
-            try:
-                sharp_hems.serial_pubsub.start_server("/dev/mock", 4444, liveness_file)
-            except Exception as e:
-                logging.info("Server stopped: %s", e)
+        try:
+            sharp_hems.serial_pubsub.start_server("/dev/mock", 4444, liveness_file)
+        except Exception as e:
+            logging.info("Server stopped: %s", e)
 
     # サーバーを別スレッドで実行
     server_thread = threading.Thread(target=run_server)
