@@ -1,4 +1,5 @@
 image: registry.green-rabbit.net:5000/kimata/local_ubuntu:250615_38f4fdb9
+
 stages:
     - generate-tag
     - build-image
@@ -13,7 +14,8 @@ generate-tag:
     artifacts:
         reports:
             dotenv: tag.env
-    expire_in: 1 hour
+        expire_in: 1 hour
+
 build-image:
     stage: build-image
     needs:
