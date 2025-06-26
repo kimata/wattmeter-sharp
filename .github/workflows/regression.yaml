@@ -87,7 +87,7 @@ jobs:
             url: ${{ steps.deployment.outputs.page_url }}
         runs-on: ubuntu-latest
         needs: test
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/master'
         steps:
             - name: Download test results
               id: deployment
