@@ -4,6 +4,7 @@ import contextlib
 import logging
 import pathlib
 import pickle
+import random
 import socket
 import threading
 import time
@@ -260,15 +261,37 @@ def test_mock_zmq_socket():
 class MockSerial:
     """シリアルポートのモッククラス"""
 
-    def __init__(self, packet_data):
+    def __init__(self, packet_data, inject_dummy_data=False):
         """Initialize with packet data from packet.dump."""
         self.packet_data = packet_data
         self.index = 0
         self.read_position = 0  # 現在のパケット内での読み取り位置
         self.current_packet_data = b""  # 現在処理中のパケットの完全データ
+        self.inject_dummy_data = inject_dummy_data
+        self.dummy_data_queue = []  # ダミーデータのキュー
+
+    def _generate_dummy_data(self):
+        """ダミーデータを生成（0バイト、1バイト、不正データなど）"""
+        dummy_types = [
+            b"",  # 0バイト（タイムアウト相当）
+            b"\x00",  # 1バイト（不完全なヘッダー）
+            b"\xff",  # 1バイト（不完全なヘッダー）
+            b"\xfe",  # 1バイト（不完全なヘッダー）
+        ]
+        return random.choice(dummy_types)  # noqa: S311
 
     def read(self, size):
         """シリアルからのデータ読み取りをシミュレート"""
+        # ダミーデータの注入（20%の確率）
+        if self.inject_dummy_data and random.random() < 0.2 and size == 2:  # noqa: S311
+            dummy_data = self._generate_dummy_data()
+            logging.debug(
+                "Injecting dummy data: %s (%d bytes)",
+                dummy_data.hex() if dummy_data else "empty",
+                len(dummy_data),
+            )
+            return dummy_data
+
         if self.index >= len(self.packet_data):
             # データが終わったら空のデータを返す（終了条件）
             return b""
@@ -301,19 +324,20 @@ class MockSerial:
         return data
 
 
-def create_mock_serial_server(dump_file_path="tests/data/packet.dump"):
+def create_mock_serial_server(dump_file_path="tests/data/packet.dump", inject_dummy_data=False):
     """
     packet.dumpからデータを読み込むモックシリアルサーバーを作成
 
     Args:
         dump_file_path: packet.dumpファイルのパス
+        inject_dummy_data: ダミーデータを注入するかどうか
 
     Returns:
         MockSerial: モックされたシリアルオブジェクト
 
     """
     packet_data = load_packet_dump(dump_file_path)
-    return MockSerial(packet_data)
+    return MockSerial(packet_data, inject_dummy_data=inject_dummy_data)
 
 
 @mock_serial_pubsub_client()
@@ -395,6 +419,82 @@ def test_serial_server(**kwargs):
             pytest.fail(f"Invalid hex data in message: {message}")
 
     logging.info("Successfully processed %d serial packets", len(received_messages))
+
+
+def test_serial_server_with_dummy_data():
+    """start_serverのテスト（ダミーデータ注入付き）"""
+    import threading
+    import time
+
+    import sharp_hems.serial_pubsub
+
+    # ダミーデータ注入有効でシリアルポートをモック
+    mock_serial = create_mock_serial_server(inject_dummy_data=True)
+
+    # 処理されたメッセージを格納するリスト
+    received_messages = []
+
+    # liveness_fileのモック
+    liveness_file = pathlib.Path("tests/evidence/test_liveness.txt")
+
+    # ZMQソケットをモック
+    class MockZMQSocket:
+        def bind(self, address):
+            pass
+
+        def send_string(self, message):
+            received_messages.append(message)
+            logging.info("ZMQ sent: %s", message)
+            # 5つのメッセージを受信したらサーバーを停止
+            if len(received_messages) >= 5:
+                sharp_hems.serial_pubsub.stop_server()
+
+    class MockZMQContext:
+        def socket(self, socket_type):  # noqa: ARG002
+            return MockZMQSocket()
+
+    def run_server():
+        try:
+            sharp_hems.serial_pubsub.start_server("/dev/mock", 4444, liveness_file)
+        except Exception as e:
+            logging.info("Server stopped: %s", e)
+
+    # シリアルポートとZMQをモック
+    with (
+        mock.patch("sharp_hems.serial_pubsub.serial.Serial") as mock_serial_class,
+        mock.patch("sharp_hems.serial_pubsub.zmq.Context") as mock_zmq_context,
+    ):
+        mock_serial_class.return_value = mock_serial
+        mock_zmq_context.return_value = MockZMQContext()
+
+        # サーバーを別スレッドで実行
+        server_thread = threading.Thread(target=run_server)
+        server_thread.daemon = True
+        server_thread.start()
+
+        # サーバーが起動してメッセージを処理するまで待機
+        # （ダミーデータ注入で時間がかかる可能性があるため長めに設定）
+        timeout = 15
+        start_time = time.time()
+        while len(received_messages) < 5 and time.time() - start_time < timeout:
+            time.sleep(0.1)
+
+    # 結果の確認
+    assert len(received_messages) >= 3, f"Expected at least 3 messages, got {len(received_messages)}"
+
+    # メッセージの形式確認（"serial header_hex payload_hex"）
+    for message in received_messages:
+        parts = message.split(" ")
+        assert len(parts) == 3, f"Invalid message format: {message}"
+        assert parts[0] == "serial", f"Expected 'serial' channel, got {parts[0]}"
+        # ヘッダーとペイロードが16進文字列であることを確認
+        try:
+            bytes.fromhex(parts[1])  # header
+            bytes.fromhex(parts[2])  # payload
+        except ValueError:
+            pytest.fail(f"Invalid hex data in message: {message}")
+
+    logging.info("Successfully processed %d serial packets with dummy data injection", len(received_messages))
 
 
 @pytest.fixture
