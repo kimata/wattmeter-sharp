@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
 """
-センサーから収集した消費電力データを Fluentd を使って送信します。
+センサーのシリアル出力をダンプします。
 
 Usage:
-  sharp_hmes_logger.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-d] [-D]
+  sharp_hmes_dump.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-o FILE] [-D]
 
 Options:
   -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
   -s SERVER_HOST    : サーバーのホスト名を指定します。 [default: localhost]
   -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します。 [default: 4444]
-  -d                : ダミーモードで動作します。
+  -o FILE           : 出力ファイル名 [default: packet.dump]
   -D                : デバッグモードで動作します。
 """
 
 import logging
 import os
 import pathlib
+import time
 
 import my_lib.fluentd_util
 import my_lib.footprint
+import my_lib.serializer
 
 import sharp_hems.device
 import sharp_hems.notify
@@ -27,49 +29,22 @@ import sharp_hems.sniffer
 
 SCHEMA_CONFIG = "config.schema"
 
-
-def fluent_send(sender, label, field, data, liveness_file):
-    try:
-        name = sharp_hems.device.get_name(data["addr"])
-
-        if name is None:
-            logging.warning("Unknown device: dev_id = %s", data["dev_id_str"])
-            return
-
-        data = {
-            "hostname": name,
-            field: int(data["watt"]),
-        }
-
-        if my_lib.fluentd_util.send(sender, label, data):
-            logging.info("Send: %s", data)
-            my_lib.footprint.update(liveness_file)
-        else:
-            logging.error(sender.last_error)
-    except Exception:
-        sharp_hems.notify.error(config)
+start_time = None
+packet_list = []
 
 
 def process_packet(handle, header, payload):
-    sharp_hems.device.reload(handle["device"]["define"])
+    global start_time  # noqa: PLW0603
+    global packet_list
 
-    if os.environ.get("DUMMY_MODE", "false") == "true":
-        sharp_hems.sniffer.process_packet(
-            handle, header, payload, lambda _: (logging.info("OK"), os._exit(0))
-        )
-    else:
-        sharp_hems.sniffer.process_packet(
-            handle,
-            header,
-            payload,
-            lambda data: fluent_send(
-                handle["sender"],
-                config["fluentd"]["data"]["label"],
-                config["fluentd"]["data"]["field"],
-                data,
-                handle["liveness"],
-            ),
-        )
+    now = time.time()
+    if start_time is None:
+        start_time = now
+
+    packet_list.append([now - start_time, header, payload])
+    logging.info("Receive %d packet(s) ", len(packet_list))
+
+    my_lib.serializer.store(handle["dump_file"], packet_list)
 
 
 def start(handle):
@@ -93,7 +68,7 @@ if __name__ == "__main__":
     config_file = args["-c"]
     server_host = os.environ.get("HEMS_SERVER_HOST", args["-s"])
     server_port = int(os.environ.get("HEMS_SERVER_PORT", args["-p"]))
-    dummy_mode = os.environ.get("DUMMY_MODE", args["-d"])
+    dump_file = args["-o"]
     debug_mode = args["-D"]
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
@@ -106,10 +81,6 @@ if __name__ == "__main__":
 
     logging.info("Start HEMS logger (server: %s:%d)", server_host, server_port)
 
-    if dummy_mode:
-        logging.info("DUMMY MODE")
-        os.environ["DUMMY_MODE"] = "true"
-
     logging.info(
         "Initialize Fluentd sender (host: %s, tag: %s)",
         config["fluentd"]["host"],
@@ -120,14 +91,6 @@ if __name__ == "__main__":
     start(
         {
             "sender": sender,
-            "device": {
-                "define": dev_define_file,
-                "cache": dev_cache_file,
-            },
-            "data": {
-                "label": config["fluentd"]["data"]["label"],
-                "field": config["fluentd"]["data"]["field"],
-            },
-            "liveness": liveness_file,
+            "dump_file": dump_file,
         }
     )

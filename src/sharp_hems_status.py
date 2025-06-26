@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-定義されたデバイスに対しで電力データが取得できているかチェックします．
+定義されたデバイスに対しで電力データが取得できているかチェックします。
 
 Usage:
   sharp_hmes_status.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-T] [-D]
 
 Options:
-  -c CONFIG         : 設定ファイルを指定します． [default: config.yaml]
-  -D                : デバッグモードで動作します．
+  -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
+  -D                : デバッグモードで動作します。
 """
 
 import logging

@@ -6,9 +6,9 @@ Usage:
   healthz.py [-c CONFIG] [-p PORT] [-p SERVER_PORT] [-D]
 
 Options:
-  -c CONFIG         : CONFIG を設定ファイルとして読み込んで実行します．[default: config.yaml]
-  -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します． [default: 4444]
-  -D                : デバッグモードで動作します．
+  -c CONFIG         : CONFIG を設定ファイルとして読み込んで実行します。[default: config.yaml]
+  -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します。 [default: 4444]
+  -D                : デバッグモードで動作します。
 """
 
 import logging

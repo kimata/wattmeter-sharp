@@ -9,8 +9,8 @@ ieee_addr_list = []
 
 # 電力に掛ける倍率
 # NOTE:
-# 電力会社のスマートメータの読み値と比較すると常に電力が小さいので，
-# 一定の倍率を掛ける．
+# 電力会社のスマートメータの読み値と比較すると常に電力が小さいので、
+# 一定の倍率を掛ける。
 WATT_SCALE = 1.5
 
 
@@ -64,7 +64,7 @@ def parse_packet_measure(packet, dev_id_map):
         logging.warning("dev_id = %s is unknown", f"0x{dev_id:04X}")
         logging.warning("dev_ip_map = %s", json.dumps(dev_id_map, indent=4))
 
-    # NOTE: 同じデータが2回送られることがあるので，新しいデータ毎にインクリメント
+    # NOTE: 同じデータが2回送られることがあるので、新しいデータ毎にインクリメント
     # しているフィールドを使ってはじく
     if dev_id in counter_hist and counter_hist[dev_id] == counter:
         logging.info("Packet duplication detected")

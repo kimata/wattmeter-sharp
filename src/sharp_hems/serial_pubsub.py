@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-センサーからのパケットを Pub-Sub パターンで配信します．
+センサーからのパケットを Pub-Sub パターンで配信します。
 
 Usage:
   serial_pubsub.py -S [-t SERIAL_PORT] [-p SERVER_PORT] [-d]
   serial_pubsub.py [-s SERVER_HOST] [-p SERVER_PORT] [-c CONFIG] [-d]
 
 Options:
-  -S                : サーバーモードで動作します．
-  -s SERVER_HOST    : サーバーのホスト名を指定します． [default: localhost]
-  -t SERIAL_PORT    : HEMS 中継器を接続するシリアルポートを指定します． [default: /dev/ttyUSB0]
-  -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します． [default: 4444]
-  -c CONFIG         : 設定ファイルを指定します． [default: config.yaml]
-  -d                : デバッグモードで動作します．
+  -S                : サーバーモードで動作します。
+  -s SERVER_HOST    : サーバーのホスト名を指定します。 [default: localhost]
+  -t SERIAL_PORT    : HEMS 中継器を接続するシリアルポートを指定します。 [default: /dev/ttyUSB0]
+  -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します。 [default: 4444]
+  -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
+  -d                : デバッグモードで動作します。
 """
 
 import logging

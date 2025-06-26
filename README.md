@@ -3,8 +3,6 @@
 シャープの HEMS コントローラ JH-AG01 のバイナリ通信を解析して電力データを取得するツール
 
 [![CI](https://gitlab.green-rabbit.net/kimata/wattmeter-sharp/badges/master/pipeline.svg)](https://gitlab.green-rabbit.net/kimata/wattmeter-sharp/-/pipelines)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
 ## 📋 概要
 

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-センサーからのパケットを Pub-Sub パターンで配信します．
+センサーからのパケットを Pub-Sub パターンで配信します。
 
 Usage:
   sharp_hmes_server.py [-c CONFIG] [-t SERIAL_PORT] [-p SERVER_PORT] [-D]
 
 Options:
-  -c CONFIG         : 設定ファイルを指定します． [default: config.yaml]
-  -t SERIAL_PORT    : HEMS 中継器を接続するシリアルポートを指定します． [default: /dev/ttyUSB0]
-  -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します． [default: 4444]
-  -D                : デバッグモードで動作します．
+  -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
+  -t SERIAL_PORT    : HEMS 中継器を接続するシリアルポートを指定します。 [default: /dev/ttyUSB0]
+  -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します。 [default: 4444]
+  -D                : デバッグモードで動作します。
 """
 
 import logging
