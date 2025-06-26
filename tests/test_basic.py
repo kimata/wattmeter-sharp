@@ -4,6 +4,9 @@ import contextlib
 import logging
 import pathlib
 import pickle
+import socket
+import threading
+import time
 from unittest import mock
 
 import pytest
@@ -380,3 +383,112 @@ def test_serial_server(**kwargs):
             pytest.fail(f"Invalid hex data in message: {message}")
 
     logging.info("Successfully processed %d serial packets", len(received_messages))
+
+
+@pytest.fixture
+def server_port():
+    """空きポートを見つけて返すフィクスチャ"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("", 0))
+        return s.getsockname()[1]
+
+
+def test_server_port_fixture(server_port):
+    """server_portフィクスチャのテスト"""
+    # ポートが有効な範囲内であることを確認
+    assert 1024 <= server_port <= 65535, f"Port {server_port} is out of valid range"
+
+    # ポートが実際に空いていることを確認
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("", server_port))
+            logging.info("Successfully bound to port %d", server_port)
+        except OSError:
+            pytest.fail(f"Port {server_port} is not available")
+
+
+def test_server_logger_integration(server_port):
+    """sharp_hems_serverとsharp_hems_loggerの連携テスト（簡易版）"""
+    import sharp_hems.serial_pubsub
+
+    # liveness_fileのモック
+    liveness_file = pathlib.Path("tests/evidence/test_liveness.txt")
+
+    # シリアルポートをモック
+    mock_serial = create_mock_serial_server()
+
+    # ZMQクライアントのテスト用モック
+    class TestZMQClient:
+        def __init__(self, server_port):
+            self.server_port = server_port
+            self.messages = []
+
+        def connect_and_receive(self):
+            """ZMQサーバーに接続してメッセージを受信"""
+            import zmq
+
+            context = zmq.Context()
+            socket = context.socket(zmq.SUB)
+            socket.connect(f"tcp://localhost:{self.server_port}")
+            socket.setsockopt_string(zmq.SUBSCRIBE, "serial")
+            socket.setsockopt(zmq.RCVTIMEO, 1000)  # 1秒でタイムアウト
+
+            try:
+                for _ in range(3):  # 3つのメッセージを受信
+                    message = socket.recv_string()
+                    self.messages.append(message)
+                    logging.info("Received ZMQ message: %s", message)
+            except zmq.Again:
+                logging.info("ZMQ receive timeout")
+            finally:
+                socket.close()
+                context.term()
+
+    def run_server():
+        """サーバーを別スレッドで実行"""
+        try:
+            sharp_hems.serial_pubsub.start_server("/dev/mock", server_port, liveness_file)
+        except Exception as e:
+            logging.info("Server stopped: %s", e)
+
+    # シリアルポートをモック
+    with mock.patch("sharp_hems.serial_pubsub.serial.Serial") as mock_serial_class:
+        mock_serial_class.return_value = mock_serial
+
+        # サーバーを別スレッドで開始
+        server_thread = threading.Thread(target=run_server)
+        server_thread.daemon = True
+        server_thread.start()
+
+        # サーバーが起動するまで少し待機
+        time.sleep(0.3)
+
+        # ZMQクライアントでメッセージを受信
+        client = TestZMQClient(server_port)
+        client_thread = threading.Thread(target=client.connect_and_receive)
+        client_thread.daemon = True
+        client_thread.start()
+
+        # 少し待ってからサーバーを停止
+        time.sleep(2)
+        sharp_hems.serial_pubsub.stop_server()
+
+        # スレッドの終了を待つ
+        client_thread.join(timeout=2)
+
+    # 結果の検証
+    assert len(client.messages) >= 1, f"Expected at least 1 ZMQ message, got {len(client.messages)}"
+
+    # メッセージの形式確認
+    for message in client.messages:
+        parts = message.split(" ")
+        assert len(parts) == 3, f"Invalid ZMQ message format: {message}"
+        assert parts[0] == "serial", f"Expected 'serial' channel, got {parts[0]}"
+        # ヘッダーとペイロードが16進文字列であることを確認
+        try:
+            bytes.fromhex(parts[1])  # header
+            bytes.fromhex(parts[2])  # payload
+        except ValueError:
+            pytest.fail(f"Invalid hex data in message: {message}")
+
+    logging.info("Successfully tested server integration: %d ZMQ messages received", len(client.messages))
