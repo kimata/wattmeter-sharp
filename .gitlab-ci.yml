@@ -77,7 +77,7 @@ deploy:
         - 'IMAGE="${CI_REGISTRY_IMAGE}:${TAG}"'
         - 'echo "Deploying image: $IMAGE"'
         - kubectl config get-contexts
-        - kubectl config use-context kimata/rasp-shutter:pod-rollout
+        - kubectl config use-context kimata/wattmeter-sharp:pod-rollout
         - >
             kubectl --insecure-skip-tls-verify=true -n hems set image
             deployment/wattmeter-sharp-server wattmeter-sharp-server=${IMAGE}
