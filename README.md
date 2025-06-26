@@ -2,7 +2,7 @@
 
 シャープの HEMS コントローラ JH-AG01 のバイナリ通信を解析して電力データを取得するツール
 
-[![CI](https://gitlab.green-rabbit.net/kimata/wattmeter-sharp/badges/master/pipeline.svg)](https://gitlab.green-rabbit.net/kimata/wattmeter-sharp/-/pipelines)
+[![Regression](https://github.com/kimata/wattmeter-sharp/actions/workflows/regression.yaml/badge.svg)](https://github.com/kimata/wattmeter-sharp/actions/workflows/regression.yaml)
 
 ## 📋 概要
 
@@ -108,19 +108,28 @@ uv run python src/sharp_hems/serial_pubsub.py
 
 データの収集は6分間隔で行われるようなので，時刻は 240 づつ増加します．
 
-## 開発・テスト
-
-### テストの実行
+## 🧪 テスト
 
 ```bash
+# Pythonテスト（カバレッジ付き）
 uv run pytest
+
+# 特定のテストファイルを実行
+uv run pytest tests/test_basic.py
 ```
+
+テスト結果：
+
+- HTMLレポート: `tests/evidence/index.htm`
+- カバレッジ: `tests/evidence/coverage/`
 
 ### コードフォーマット・リント
 
-設定ファイルのフォーマットチェック：
-
 ```bash
+# pre-commitフック実行
+uv run pre-commit run --all-files
+
+# 設定ファイルのフォーマットチェック
 uv run python scripts/check_config_format.py
 ```
 
@@ -190,6 +199,13 @@ HEMS コントローラの IP アドレスにアクセスすると，Web イン�
 
 - **ログイン**: ID・パスワード共に `root`
 - **機能**: 接続されているコンセントや動作ログ等が確認可能
+
+## 📊 CI/CD
+
+GitHub Actions によるCI/CDパイプライン：
+
+- テスト結果: https://kimata.github.io/wattmeter-sharp/
+- カバレッジレポート: https://kimata.github.io/wattmeter-sharp/coverage/
 
 ## 📝 ライセンス
 
