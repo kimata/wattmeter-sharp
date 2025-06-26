@@ -186,6 +186,61 @@ def test_mock_zmq_socket():
     assert msg3 == "serial 1020 304050"
 
 
+class MockSerial:
+    """シリアルポートのモッククラス"""
+
+    def __init__(self, packet_data):
+        """Initialize with packet data from packet.dump."""
+        self.packet_data = packet_data
+        self.index = 0
+        self.read_position = 0  # 現在のパケット内での読み取り位置
+        self.current_packet_data = b""  # 現在処理中のパケットの完全データ
+
+    def read(self, size):
+        """シリアルからのデータ読み取りをシミュレート"""
+        if self.index >= len(self.packet_data):
+            # データが終わったら最初に戻る
+            self.index = 0
+            self.read_position = 0
+
+        # 新しいパケットの開始
+        if self.read_position == 0:
+            timestamp, header, payload = self.packet_data[self.index]
+            # ヘッダー + ペイロードを結合してシリアルデータを再構成
+            self.current_packet_data = header + payload
+            logging.debug("Starting packet %d: %s", self.index, self.current_packet_data.hex())
+
+        # 要求されたサイズ分のデータを返す
+        start_pos = self.read_position
+        end_pos = min(start_pos + size, len(self.current_packet_data))
+        data = self.current_packet_data[start_pos:end_pos]
+
+        self.read_position = end_pos
+
+        # パケットの終端に達したら次のパケットに進む
+        if self.read_position >= len(self.current_packet_data):
+            self.index += 1
+            self.read_position = 0
+
+        logging.debug("Serial read(%d) -> %s", size, data.hex())
+        return data
+
+
+def create_mock_serial_server(dump_file_path="tests/data/packet.dump"):
+    """
+    packet.dumpからデータを読み込むモックシリアルサーバーを作成
+
+    Args:
+        dump_file_path: packet.dumpファイルのパス
+
+    Returns:
+        MockSerial: モックされたシリアルオブジェクト
+
+    """
+    packet_data = load_packet_dump(dump_file_path)
+    return MockSerial(packet_data)
+
+
 @mock_serial_pubsub_client()
 def test_sniffer():
     """snifferモジュールのテスト"""
@@ -216,3 +271,76 @@ def test_sniffer():
     # パケットが処理されたことを確認
     assert processed_count == PACKET_COUNT
     assert len(sense_data_list) != 0
+
+
+def test_serial_server():
+    """start_serverのテスト（シリアルポートをモック）"""
+    import threading
+    import time
+
+    import sharp_hems.serial_pubsub
+
+    # シリアルポートをモック
+    mock_serial = create_mock_serial_server()
+
+    # ZMQソケットとシリアルをモック
+    received_messages = []
+
+    class MockZMQSocket:
+        def bind(self, address):
+            pass
+
+        def send_string(self, message):
+            received_messages.append(message)
+            logging.info("ZMQ sent: %s", message)
+            # 3つのメッセージを受信したらサーバーを停止
+            if len(received_messages) >= 3:
+                sharp_hems.serial_pubsub.stop_server()
+
+    class MockZMQContext:
+        def socket(self, socket_type):  # noqa: ARG002
+            return MockZMQSocket()
+
+    # liveness_fileのモック
+    liveness_file = pathlib.Path("tests/evidence/test_liveness.txt")
+
+    def run_server():
+        with (
+            mock.patch("sharp_hems.serial_pubsub.serial.Serial") as mock_serial_class,
+            mock.patch("sharp_hems.serial_pubsub.zmq.Context") as mock_zmq_context,
+        ):
+            mock_serial_class.return_value = mock_serial
+            mock_zmq_context.return_value = MockZMQContext()
+
+            try:
+                sharp_hems.serial_pubsub.start_server("/dev/mock", 4444, liveness_file)
+            except Exception as e:
+                logging.info("Server stopped: %s", e)
+
+    # サーバーを別スレッドで実行
+    server_thread = threading.Thread(target=run_server)
+    server_thread.daemon = True
+    server_thread.start()
+
+    # サーバーが起動してメッセージを処理するまで待機
+    timeout = 10
+    start_time = time.time()
+    while len(received_messages) < 3 and time.time() - start_time < timeout:
+        time.sleep(0.1)
+
+    # 結果の確認
+    assert len(received_messages) >= 3, f"Expected at least 3 messages, got {len(received_messages)}"
+
+    # メッセージの形式確認（"serial header_hex payload_hex"）
+    for message in received_messages:
+        parts = message.split(" ")
+        assert len(parts) == 3, f"Invalid message format: {message}"
+        assert parts[0] == "serial", f"Expected 'serial' channel, got {parts[0]}"
+        # ヘッダーとペイロードが16進文字列であることを確認
+        try:
+            bytes.fromhex(parts[1])  # header
+            bytes.fromhex(parts[2])  # payload
+        except ValueError:
+            pytest.fail(f"Invalid hex data in message: {message}")
+
+    logging.info("Successfully processed %d serial packets", len(received_messages))
