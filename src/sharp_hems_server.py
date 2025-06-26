@@ -51,7 +51,6 @@ if __name__ == "__main__":
     config_file = args["-c"]
     serial_port = os.environ.get("HEMS_SERIAL_PORT", args["-t"])
     server_port = int(os.environ.get("HEMS_SERVER_PORT", args["-p"]))
-    log_level = logging.DEBUG if args["-d"] else logging.INFO
     debug_mode = args["-D"]
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
