@@ -120,7 +120,7 @@ tag-latest:
         - generate-tag
         - job: test-walk-through
           artifacts: false
-        - job: test-logger
+        - job: test-docker
           artifacts: false
     script:
         - 'echo "Tagging multi-arch image ${CI_REGISTRY_IMAGE}:${TAG} as latest"'
@@ -135,7 +135,7 @@ deploy:
         - generate-tag
         - job: test-walk-through
           artifacts: false
-        - job: test-logger
+        - job: test-docker
           artifacts: false
     image:
         name: bitnami/kubectl:latest
