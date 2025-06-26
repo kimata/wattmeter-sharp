@@ -1,95 +1,113 @@
 image: registry.green-rabbit.net:5000/kimata/local_ubuntu:250615_38f4fdb9
 stages:
-  - generate-tag
-  - build-image
-  - test
-  - tag-latest
-  - deploy
-  - renovate
-generate-tag:
-  stage: generate-tag
-  script:
-    - echo "TAG=$(date +%y%m%d)_${CI_COMMIT_SHORT_SHA}" > tag.env
-  artifacts:
-    reports:
-      dotenv: tag.env
-    expire_in: 1 hour
-build-image:
-  stage: build-image
-  needs:
-    - generate-tag
-  variables:
-    BUILDER: arm_builder
-  script:
-    - 'echo "Building: ${CI_REGISTRY_IMAGE}:${TAG}"'
-    - export GIT_SSL_NO_VERIFY=1
-    - git clone https://gitlab.green-rabbit.net/kimata/wattmeter-config.git
-    - mv wattmeter-config/sharp_config.yaml config.yaml
-    - mv wattmeter-config/sharp_device.yaml device.yaml
-    - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
-    - docker buildx create --driver docker-container --name ${BUILDER} --use --config /etc/buildkitd.toml
-    - docker buildx use ${BUILDER}
-    - docker buildx inspect --bootstrap
-    - docker buildx build --provenance=false --progress=plain --platform linux/amd64,linux/arm64/v8 --cache-from type=registry,ref=${CI_REGISTRY_IMAGE}:cache --cache-from type=registry,ref=${CI_REGISTRY_IMAGE}:latest --cache-to type=inline --cache-to type=registry,ref=${CI_REGISTRY_IMAGE}:cache,mode=max --build-arg IMAGE_BUILD_DATE=$(date --iso-8601=seconds) --tag ${CI_REGISTRY_IMAGE}:${TAG} --push .
-test-logger:
-  stage: test
-  needs:
     - generate-tag
     - build-image
-  variables:
-    HEMS_HOST_NAME: proxy.green-rabbit.net
-  script:
-    - docker run -t --label job=${CI_JOB_NAME} ${CI_REGISTRY_IMAGE}:${TAG} ./src/sharp_hems_logger.py -s ${HEMS_HOST_NAME} -T
+    - test
+    - tag-latest
+    - deploy
+    - renovate
+generate-tag:
+    stage: generate-tag
+    script:
+        - echo "TAG=$(date +%y%m%d)_${CI_COMMIT_SHORT_SHA}" > tag.env
+    artifacts:
+        reports:
+            dotenv: tag.env
+    expire_in: 1 hour
+build-image:
+    stage: build-image
+    needs:
+        - generate-tag
+    variables:
+        BUILDER: arm_builder
+    script:
+        - 'echo "Building: ${CI_REGISTRY_IMAGE}:${TAG}"'
+        - export GIT_SSL_NO_VERIFY=1
+        - git clone https://gitlab.green-rabbit.net/kimata/wattmeter-config.git
+        - mv wattmeter-config/sharp_config.yaml config.yaml
+        - mv wattmeter-config/sharp_device.yaml device.yaml
+        - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
+        - docker buildx create --driver docker-container --name ${BUILDER} --use --config /etc/buildkitd.toml
+        - docker buildx use ${BUILDER}
+        - docker buildx inspect --bootstrap
+        - >
+            docker buildx build --provenance=false --progress=plain --platform linux/amd64,linux/arm64/v8
+            --cache-from type=registry,ref=${CI_REGISTRY_IMAGE}:cache
+            --cache-from type=registry,ref=${CI_REGISTRY_IMAGE}:latest
+            --cache-to type=inline --cache-to type=registry,ref=${CI_REGISTRY_IMAGE}:cache,mode=max
+            --build-arg IMAGE_BUILD_DATE=$(date --iso-8601=seconds)
+            --tag ${CI_REGISTRY_IMAGE}:${TAG} --push .
+test-logger:
+    stage: test
+    needs:
+        - generate-tag
+        - build-image
+    variables:
+        HEMS_HOST_NAME: proxy.green-rabbit.net
+    script:
+        - >
+            docker run -t --label job=${CI_JOB_NAME} ${CI_REGISTRY_IMAGE}:${TAG}
+            ./src/sharp_hems_logger.py -s ${HEMS_HOST_NAME} -T
 tag-latest:
-  stage: tag-latest
-  needs:
-    - generate-tag
-    - job: test-logger
-      artifacts: false
-  script:
-    - 'echo "Tagging multi-arch image ${CI_REGISTRY_IMAGE}:${TAG} as latest"'
-    - docker buildx imagetools create -t ${CI_REGISTRY_IMAGE}:latest ${CI_REGISTRY_IMAGE}:${TAG}
-  rules:
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-      when: never
-    - when: on_success
+    stage: tag-latest
+    needs:
+        - generate-tag
+        - job: test-logger
+          artifacts: false
+    script:
+        - 'echo "Tagging multi-arch image ${CI_REGISTRY_IMAGE}:${TAG} as latest"'
+        - docker buildx imagetools create -t ${CI_REGISTRY_IMAGE}:latest ${CI_REGISTRY_IMAGE}:${TAG}
+    rules:
+        - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+          when: never
+        - when: on_success
 deploy:
-  stage: deploy
-  needs:
-    - test-logger
-    - job: test-logger
-      artifacts: false
-  dependencies: []
-  image:
-    name: bitnami/kubectl:latest
-    entrypoint: ['']
-  script:
-    - 'IMAGE="${CI_REGISTRY_IMAGE}:${TAG}"'
-    - 'echo "Deploying image: $IMAGE"'
-    - kubectl config get-contexts
-    - kubectl config use-context kimata/rasp-shutter:pod-rollout
-    - kubectl --insecure-skip-tls-verify=true -n hems set image deployment/wattmeter-sharp-server wattmeter-sharp-server=${IMAGE}
-    - kubectl --insecure-skip-tls-verify=true -n hems set image deployment/wattmeter-sharp-client wattmeter-sharp-client=${IMAGE}
-    - kubectl --insecure-skip-tls-verify=true -n hems rollout status deployment/wattmeter-sharp-server --timeout=120s
-    - kubectl --insecure-skip-tls-verify=true -n hems rollout status deployment/wattmeter-sharp-client --timeout=120s
-    - 'echo "✓ All deployments updated successfully to $TAG"'
-  rules:
-    # NOTE: 自動実行ではデプロイしない
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never
-    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
-      when: never
-    - when: on_success
+    stage: deploy
+    needs:
+        - test-logger
+        - job: test-logger
+          artifacts: false
+    dependencies: []
+    image:
+        name: bitnami/kubectl:latest
+        entrypoint: [""]
+    script:
+        - 'IMAGE="${CI_REGISTRY_IMAGE}:${TAG}"'
+        - 'echo "Deploying image: $IMAGE"'
+        - kubectl config get-contexts
+        - kubectl config use-context kimata/rasp-shutter:pod-rollout
+        - >
+            kubectl --insecure-skip-tls-verify=true -n hems set image
+            deployment/wattmeter-sharp-server wattmeter-sharp-server=${IMAGE}
+        - >
+            kubectl --insecure-skip-tls-verify=true -n hems set image
+            deployment/wattmeter-sharp-client wattmeter-sharp-client=${IMAGE}
+        - >
+            kubectl --insecure-skip-tls-verify=true -n hems rollout status
+            deployment/wattmeter-sharp-server --timeout=120s
+        - >
+            kubectl --insecure-skip-tls-verify=true -n hems rollout status
+            deployment/wattmeter-sharp-client --timeout=120s
+        - 'echo "✓ All deployments updated successfully to $TAG"'
+    rules:
+        # NOTE: 自動実行ではデプロイしない
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+          when: never
+        - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+          when: never
+        - when: on_success
 renovate:
-  stage: renovate
-  image:
-    name: registry.green-rabbit.net:5000/kimata/local_renovate:38
-    entrypoint: ['']
-  script:
-    - renovate --platform gitlab --token ${RENOVATE_TOKEN} --endpoint ${CI_SERVER_URL}/api/v4 ${CI_PROJECT_PATH}
-  rules:
-    - if: $CI_COMMIT_BRANCH != "master"
-      when: never
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-    - changes:
-        - renovate.json
+    stage: renovate
+    image:
+        name: registry.green-rabbit.net:5000/kimata/local_renovate:38
+        entrypoint: [""]
+    script:
+        - >
+            renovate --platform gitlab --token ${RENOVATE_TOKEN}
+            --endpoint ${CI_SERVER_URL}/api/v4 ${CI_PROJECT_PATH}
+    rules:
+        - if: $CI_COMMIT_BRANCH != "master"
+          when: never
+        - if: $CI_PIPELINE_SOURCE == "schedule"
+        - changes:
+              - renovate.json
