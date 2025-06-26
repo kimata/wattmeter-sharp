@@ -15,11 +15,19 @@ Options:
 import logging
 import os
 import pathlib
+import signal
 
 import sharp_hems.notify
 import sharp_hems.serial_pubsub
 
 SCHEMA_CONFIG = "config.schema"
+
+
+def sig_handler(num, frame):  # noqa: ARG001
+    logging.warning("Receive signal %d", num)
+
+    if num == signal.SIGTERM:
+        sharp_hems.serial_pubsub.stop_server()
 
 
 def start():

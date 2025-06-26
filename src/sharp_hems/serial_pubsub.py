@@ -16,6 +16,7 @@ Options:
 """
 
 import logging
+import threading
 
 import my_lib.footprint
 import serial
@@ -25,10 +26,14 @@ CH = "serial"
 SER_BAUD = 115200
 SER_TIMEOUT = 10
 
+should_terminate = threading.Event()
+
 
 def start_server(serial_port, server_port, liveness_file):
+    global should_terminate
     logging.info("Start serial server...")
 
+    should_terminate.clear()
     context = zmq.Context()
 
     socket = context.socket(zmq.PUB)
@@ -39,6 +44,9 @@ def start_server(serial_port, server_port, liveness_file):
     logging.info("Server initialize done.")
 
     while True:
+        if should_terminate.is_set():
+            break
+
         header = ser.read(2)
 
         if len(header) == 0:
@@ -54,6 +62,14 @@ def start_server(serial_port, server_port, liveness_file):
         socket.send_string(f"{CH} {header_hex} {payload_hex}")
 
         my_lib.footprint.update(liveness_file)
+
+    logging.warning("Stop serial server")
+
+
+def stop_server():
+    global should_terminate
+
+    should_terminate.set()
 
 
 def start_client(server_host, server_port, handle, func):
