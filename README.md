@@ -137,7 +137,7 @@ graph LR
     end
 
     subgraph "パケット解析"
-        B1{パケット種別<br/>header#91;1#93;}
+        B1{パケット種別<br/>header[1]}
         B2[0x08: IEEE Address]
         B3[0x12: Device ID]
         B4[0x2C: Power Data]
