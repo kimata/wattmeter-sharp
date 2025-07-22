@@ -45,6 +45,7 @@ build-image:
         - |
             docker buildx create \
                 --name ${BUILDER} \
+                --driver docker-container \
                 --driver-opt image=${BUILD_KIT_IMAGE} \
                 --use \
                 --config /etc/buildkitd.toml
