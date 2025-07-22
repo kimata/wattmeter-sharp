@@ -43,8 +43,6 @@ build-image:
         - mv wattmeter-config/sharp_device.yaml device.yaml
         - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
 
-        - docker buildx rm ${BUILDER} || true
-
         - |
             docker buildx create \
                 --name ${BUILDER} \
