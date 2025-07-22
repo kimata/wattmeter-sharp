@@ -1094,7 +1094,7 @@ wheels = [
 [[package]]
 name = "my-lib"
 version = "0.1.0"
-source = { git = "https://github.com/kimata/my-py-lib?rev=eba490264559b0c1f60bef8c2b334a78111de759#eba490264559b0c1f60bef8c2b334a78111de759" }
+source = { git = "https://github.com/kimata/my-py-lib?rev=30bb0cb7bdc8d4b063be302321b37783ebbb2c13#30bb0cb7bdc8d4b063be302321b37783ebbb2c13" }
 dependencies = [
     { name = "coloredlogs" },
     { name = "docopt-ng" },
@@ -2096,7 +2096,7 @@ requires-dist = [
     { name = "docopt-ng", specifier = ">=0.9.0" },
     { name = "fluent-logger", specifier = ">=0.11.1" },
     { name = "influxdb-client", extras = ["ciso"], specifier = ">=1.44.0" },
-    { name = "my-lib", git = "https://github.com/kimata/my-py-lib?rev=eba490264559b0c1f60bef8c2b334a78111de759" },
+    { name = "my-lib", git = "https://github.com/kimata/my-py-lib?rev=30bb0cb7bdc8d4b063be302321b37783ebbb2c13" },
     { name = "pyserial", specifier = ">=3.5" },
     { name = "pyzmq", specifier = ">=26.4.0" },
 ]
