@@ -37,6 +37,142 @@
 - **コンテナ**: Docker
 - **設定**: YAML
 
+## 🏛️ アーキテクチャ
+
+### システム全体図
+
+```mermaid
+graph TB
+    subgraph "HEMSデバイス"
+        A[SHARP JH-AG01<br/>HEMSコントローラ]
+        B[電力プラグ<br/>センサー]
+        A -.->|Zigbee| B
+    end
+
+    subgraph "データ収集層"
+        C[sharp_hems_server.py<br/>シリアル受信サーバー]
+        A -->|UART<br/>115200bps| C
+    end
+
+    subgraph "データ配信層"
+        D[ZeroMQ PUB<br/>ポート:4444]
+        C -->|Publish| D
+    end
+
+    subgraph "データ処理層"
+        E[sharp_hems_logger.py<br/>電力データロガー]
+        F[sharp_hems_dump.py<br/>パケットダンプ]
+        D -->|Subscribe<br/>"serial"チャンネル| E
+        D -->|Subscribe| F
+    end
+
+    subgraph "データ保存層"
+        G[Fluentd]
+        H[InfluxDB<br/>時系列DB]
+        I[packet.dump<br/>ダンプファイル]
+        E -->|送信| G
+        G -->|書き込み| H
+        F -->|保存| I
+    end
+
+    subgraph "監視層"
+        J[sharp_hems_status.py<br/>ステータスチェック]
+        K[healthz.py<br/>ヘルスチェック]
+        H -->|クエリ| J
+        E -.->|liveness| K
+    end
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#bbf,stroke:#333,stroke-width:2px
+    style E fill:#bfb,stroke:#333,stroke-width:2px
+    style H fill:#fbf,stroke:#333,stroke-width:2px
+```
+
+### プログラム間通信フロー
+
+```mermaid
+sequenceDiagram
+    participant HEMS as JH-AG01
+    participant Server as sharp_hems_server
+    participant ZMQ as ZeroMQ Hub
+    participant Logger as sharp_hems_logger
+    participant Fluentd
+    participant InfluxDB
+
+    Note over HEMS,Server: シリアル通信 (115200bps)
+
+    loop 6分間隔
+        HEMS->>Server: バイナリパケット送信
+        Server->>Server: パケット解析
+        Server->>ZMQ: publish("serial {header} {payload}")
+
+        par ロガー処理
+            ZMQ->>Logger: subscribe("serial")
+            Logger->>Logger: パケット種別判定
+
+            alt IEEEアドレスパケット (0x08)
+                Logger->>Logger: デバイスのIEEEアドレス記録
+            else デバイスIDパケット (0x12)
+                Logger->>Logger: デバイスID⇔IEEEアドレスマッピング
+            else 測定パケット (0x2C)
+                Logger->>Logger: 電力値計算<br/>(cur_power - pre_power) / (cur_time - pre_time) * WATT_SCALE
+                Logger->>Fluentd: 電力データ送信
+                Fluentd->>InfluxDB: 時系列データ保存
+            end
+        and ダンプ処理
+            ZMQ->>sharp_hems_dump: subscribe("serial")
+            sharp_hems_dump->>sharp_hems_dump: タイムスタンプ付きで<br/>packet.dumpに保存
+        end
+    end
+
+    Note over Logger,InfluxDB: 非同期処理
+```
+
+### データフロー図
+
+```mermaid
+graph LR
+    subgraph "入力データ"
+        A1[シリアルパケット<br/>Header + Payload]
+    end
+
+    subgraph "パケット解析"
+        B1{パケット種別<br/>header#91;1#93;}
+        B2[0x08: IEEE Address]
+        B3[0x12: Device ID]
+        B4[0x2C: Power Data]
+    end
+
+    subgraph "データ変換"
+        C1[アドレス収集]
+        C2[ID-アドレス<br/>マッピング]
+        C3[電力計算<br/>WATT_SCALE適用]
+    end
+
+    subgraph "データ保存"
+        D1[(device_cache.yaml<br/>デバイス情報)]
+        D2[(InfluxDB<br/>時系列データ)]
+        D3[(packet.dump<br/>生データ)]
+    end
+
+    A1 --> B1
+    B1 --> B2
+    B1 --> B3
+    B1 --> B4
+
+    B2 --> C1
+    B3 --> C2
+    B4 --> C3
+
+    C1 --> D1
+    C2 --> D1
+    C3 --> D2
+    A1 --> D3
+
+    style B1 fill:#ffd,stroke:#333,stroke-width:2px
+    style C3 fill:#dfd,stroke:#333,stroke-width:2px
+```
+
 ## 🔧 ハードウェア準備
 
 JH-AG01 を分解し，写真のようにコネクタターミナルから線だしを行い，Raspbeery Pi 等の UART 端子と接続します．
