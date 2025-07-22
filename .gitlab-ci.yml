@@ -37,8 +37,10 @@ build-image:
     script:
         - 'echo "Building: ${CI_REGISTRY_IMAGE}:${TAG}"'
 
-        - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.green-rabbit.net/kimata/hems-config.git
-        - mv hems-config/rasp-shutter.yaml config.yaml
+        - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.green-rabbit.net/kimata/wattmeter-config.git
+        - mv wattmeter-config/sharp_config.yaml config.yaml
+        - mv wattmeter-config/sharp_device.yaml device.yaml
+        - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
 
         - |
             docker buildx create \
