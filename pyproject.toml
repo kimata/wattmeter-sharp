@@ -12,7 +12,7 @@ dependencies = [
     "docopt-ng>=0.9.0",
     "fluent-logger>=0.11.1",
     "influxdb-client[ciso]>=1.44.0",
-    "my-lib @ git+https://github.com/kimata/my-py-lib@8d62ee7f13ee0c744a8a451a7ee9abf21339b1aa",
+    "my-lib @ git+https://github.com/kimata/my-py-lib@eba490264559b0c1f60bef8c2b334a78111de759",
     "pyzmq>=26.4.0",
     "pyserial>=3.5",
 ]
@@ -45,7 +45,7 @@ allow-direct-references = true
 [tool.pytest.ini_options]
 minversion = "6.0"
 
-addopts = "--verbose --timeout=120 --log-file-level=DEBUG --log-format=\"%(asctime)s %(levelname)s %(message)s\" --log-format=\"%(asctime)s %(levelname)s [%(filename)s:%(lineno)s %(funcName)s] %(message)s\" --capture=sys --html=tests/evidence/index.htm --self-contained-html --cov=src --cov-report=html"
+addopts = "--verbose --timeout=120 --durations=10 --log-file-level=DEBUG --log-format=\"%(asctime)s %(levelname)s %(message)s\" --log-format=\"%(asctime)s %(levelname)s [%(filename)s:%(lineno)s %(funcName)s] %(message)s\" --capture=sys --html=tests/evidence/index.htm --self-contained-html --cov=src --cov-report=html"
 
 testpaths = [
     "tests",

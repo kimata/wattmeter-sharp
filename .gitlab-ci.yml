@@ -1,13 +1,17 @@
-image: registry.green-rabbit.net:5000/kimata/local_ubuntu:250615_38f4fdb9
+image: gitlab.green-rabbit.net:5050/kimata/local-ubuntu:250706_043ea01d
+
+variables:
+    UV_LINK_MODE: copy
+    UV_CACHE_DIR: .uv-cache
 
 stages:
     - generate-tag
-    - build-image
-    - pre-test
+    - build
     - test
     - tag-latest
     - deploy
     - renovate
+
 generate-tag:
     stage: generate-tag
     script:
@@ -18,19 +22,32 @@ generate-tag:
         expire_in: 1 hour
 
 build-image:
-    stage: build-image
+    stage: build
+
     needs:
         - generate-tag
+        - build-vue
+
     variables:
-        BUILDER: arm_builder
+        BUILDER: builder
+        BUILD_KIT_IMAGE: gitlab.green-rabbit.net:5050/kimata/local-buildkit:250705_7cc0d1c
+
+    before_script:
+        - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+
     script:
         - 'echo "Building: ${CI_REGISTRY_IMAGE}:${TAG}"'
-        - export GIT_SSL_NO_VERIFY=1
-        - git clone https://gitlab.green-rabbit.net/kimata/wattmeter-config.git
-        - mv wattmeter-config/sharp_config.yaml config.yaml
-        - mv wattmeter-config/sharp_device.yaml device.yaml
-        - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
-        - docker buildx create --driver docker-container --name ${BUILDER} --use --config /etc/buildkitd.toml
+
+        - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.green-rabbit.net/kimata/hems-config.git
+        - mv hems-config/rasp-shutter.yaml config.yaml
+
+        - |
+            docker buildx create \
+                --name ${BUILDER} \
+                --driver-opt image=${BUILD_KIT_IMAGE} \
+                --use \
+                --config /etc/buildkitd.toml
+
         - docker buildx use ${BUILDER}
         - docker buildx inspect --bootstrap
         - >
@@ -42,34 +59,48 @@ build-image:
             --tag ${CI_REGISTRY_IMAGE}:${TAG} --push .
 
 test-prepare:
-    stage: pre-test
+    stage: build
 
     needs: []
 
     script:
         - uv sync --locked --no-editable
 
+        - |
+            now=$(date +%s)
+            threshold=$((60*60*24))  # 24時間
+
+            for net in $(docker network ls --format '{{.Name}}'); do
+                if [[ "$net" == "bridge" || "$net" == "host" || "$net" == "none" ]]; then
+                    continue
+                fi
+
+                attached=$(docker network inspect "$net" --format '{{json .Containers}}')
+                if [[ "$attached" != "{}" ]]; then
+                    continue
+                fi
+
+                created=$(docker network inspect "$net" --format '{{.Created}}')
+                created_fixed=$(echo "$created" | sed -E 's/\.[0-9]+//; s/ [A-Z]+$//')
+                created_ts=$(date --date="$created_fixed" +%s)
+
+                if [[ -n "$created_ts" && $((now - created_ts)) -gt $threshold ]]; then
+                    echo "Removing unused network: $net (created at $created)"
+                    docker network rm "$net" || true
+                fi
+            done
+
     artifacts:
         paths:
-            - .venv
-            - .uv_python
-
+            - ${UV_CACHE_DIR}
         expire_in: 1 hour
 
     cache:
         - key:
               files:
-                  - pyproject.toml
-                  - .gitlab-ci.yml
-              prefix: ${CI_COMMIT_REF_SLUG}-venv
+                  - uv.lock
           paths:
-              - .venv
-          policy: pull-push
-
-        - key: ${CI_COMMIT_REF_SLUG}-uv-toolchain
-          paths:
-              - .uv_python
-          policy: pull-push
+              - ${UV_CACHE_DIR}
 
 test-walk-through:
     stage: test
@@ -80,21 +111,6 @@ test-walk-through:
     script:
         - uv run pytest --numprocesses=auto --junit-xml=tests/evidence/junit-report.xml tests/test_basic.py
 
-    cache:
-        - key:
-              files:
-                  - pyproject.toml
-                  - .gitlab-ci.yml
-              prefix: ${CI_COMMIT_REF_SLUG}-venv
-          paths:
-              - .venv
-          policy: pull
-
-        - key: ${CI_COMMIT_REF_SLUG}-uv-toolchain
-          paths:
-              - .uv_python
-          policy: pull
-
     artifacts:
         when: always
         paths:
@@ -102,62 +118,72 @@ test-walk-through:
         reports:
             junit: tests/evidence/junit-report.xml
 
-test-docker:
-    stage: test
-    needs:
-        - generate-tag
-        - build-image
-    variables:
-        HEMS_SERVER_HOST: proxy.green-rabbit.net
-    script:
-        - >
-            docker run -t --label job=${CI_JOB_NAME} ${CI_REGISTRY_IMAGE}:${TAG}
-            ./src/sharp_hems_logger.py -s ${HEMS_SERVER_HOST} -d
+# test-docker:
+#     stage: test
+#     needs:
+#         - generate-tag
+#         - build-image
+
+#     variables:
+#         HEMS_SERVER_HOST: proxy.green-rabbit.net
+
+#     script:
+#         - >
+#             docker run -t --label job=${CI_JOB_NAME} ${CI_REGISTRY_IMAGE}:${TAG}
+#             ./src/sharp_hems_logger.py -s ${HEMS_SERVER_HOST} -d
 
 tag-latest:
     stage: tag-latest
+
     needs:
         - generate-tag
+        - build-image
         - job: test-walk-through
           artifacts: false
-        - job: test-docker
-          artifacts: false
+        # - job: test-docker
+        #   artifacts: false
+
+    before_script:
+        - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+
     script:
         - 'echo "Tagging multi-arch image ${CI_REGISTRY_IMAGE}:${TAG} as latest"'
         - docker buildx imagetools create -t ${CI_REGISTRY_IMAGE}:latest ${CI_REGISTRY_IMAGE}:${TAG}
+
     rules:
         - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
           when: never
         - when: on_success
+
 deploy:
     stage: deploy
+
     needs:
         - generate-tag
+        - build-image
         - job: test-walk-through
           artifacts: false
-        - job: test-docker
-          artifacts: false
+        # - job: test-docker
+        #   artifacts: false
+
     image:
-        name: bitnami/kubectl:latest
-        entrypoint: [""]
+        name: gitlab.green-rabbit.net:5050/kimata/local-kubectl:250715_c88f3965
+
     script:
         - 'IMAGE="${CI_REGISTRY_IMAGE}:${TAG}"'
         - 'echo "Deploying image: $IMAGE"'
+
         - kubectl config get-contexts
-        - kubectl config use-context kimata/wattmeter-sharp:pod-rollout
-        - >
-            kubectl --insecure-skip-tls-verify=true -n hems set image
-            deployment/wattmeter-sharp-server wattmeter-sharp-server=${IMAGE}
-        - >
-            kubectl --insecure-skip-tls-verify=true -n hems set image
-            deployment/wattmeter-sharp-client wattmeter-sharp-client=${IMAGE}
-        - >
-            kubectl --insecure-skip-tls-verify=true -n hems rollout status
-            deployment/wattmeter-sharp-server --timeout=120s
-        - >
-            kubectl --insecure-skip-tls-verify=true -n hems rollout status
-            deployment/wattmeter-sharp-client --timeout=120s
+        - kubectl config use-context kimata/wattmetert-sharp:pod-rollout
+
+        - kubectl -n hems set image deployment/wattmeter-sharp-server wattmeter-sharp-server=${IMAGE}
+        - kubectl -n hems set image deployment/wattmeter-sharp-client wattmeter-sharp-client=${IMAGE}
+
+        - kubectl -n hems rollout status deployment/wattmeter-sharp-server --timeout=120s
+        - kubectl -n hems rollout status deployment/wattmeter-sharp-client --timeout=120s
+
         - 'echo "✓ All deployments updated successfully to $TAG"'
+
     rules:
         # NOTE: 自動実行ではデプロイしない
         - if: $CI_PIPELINE_SOURCE == "schedule"
@@ -165,17 +191,17 @@ deploy:
         - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
           when: never
         - when: on_success
+
 renovate:
     stage: renovate
+    dependencies: []
     image:
-        name: registry.green-rabbit.net:5000/kimata/local_renovate:38
-        entrypoint: [""]
+        name: gitlab.green-rabbit.net:5050/kimata/local-renovate:250715_3b8866ff
+
     script:
-        - >
-            renovate --platform gitlab --token ${RENOVATE_TOKEN}
-            --endpoint ${CI_SERVER_URL}/api/v4 ${CI_PROJECT_PATH}
+        - renovate --platform gitlab --token ${RENOVATE_TOKEN} --endpoint ${CI_SERVER_URL}/api/v4 ${CI_PROJECT_PATH}
     rules:
-        - if: $CI_COMMIT_BRANCH != "master"
+        - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
           when: never
         - if: $CI_PIPELINE_SOURCE == "schedule"
         - changes:

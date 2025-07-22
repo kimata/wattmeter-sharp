@@ -1094,7 +1094,7 @@ wheels = [
 [[package]]
 name = "my-lib"
 version = "0.1.0"
-source = { git = "https://github.com/kimata/my-py-lib?rev=8d62ee7f13ee0c744a8a451a7ee9abf21339b1aa#8d62ee7f13ee0c744a8a451a7ee9abf21339b1aa" }
+source = { git = "https://github.com/kimata/my-py-lib?rev=eba490264559b0c1f60bef8c2b334a78111de759#eba490264559b0c1f60bef8c2b334a78111de759" }
 dependencies = [
     { name = "coloredlogs" },
     { name = "docopt-ng" },
@@ -1112,7 +1112,6 @@ dependencies = [
     { name = "rich" },
     { name = "slack-sdk" },
     { name = "smbus2" },
-    { name = "spidev" },
     { name = "sseclient" },
     { name = "uptime" },
 ]
@@ -1902,12 +1901,6 @@ wheels = [
 ]
 
 [[package]]
-name = "spidev"
-version = "3.7"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b5/99/dd50af8200e224ce9412ad01cdbeeb5b39b2d61acd72138f2b92c4a6d619/spidev-3.7.tar.gz", hash = "sha256:ce628a5ff489f45132679879bff5f455a66abf9751af01843850155b06ae92f0", size = 11616, upload-time = "2025-05-06T14:23:30.783Z" }
-
-[[package]]
 name = "sseclient"
 version = "0.0.27"
 source = { registry = "https://pypi.org/simple" }
@@ -2103,7 +2096,7 @@ requires-dist = [
     { name = "docopt-ng", specifier = ">=0.9.0" },
     { name = "fluent-logger", specifier = ">=0.11.1" },
     { name = "influxdb-client", extras = ["ciso"], specifier = ">=1.44.0" },
-    { name = "my-lib", git = "https://github.com/kimata/my-py-lib?rev=8d62ee7f13ee0c744a8a451a7ee9abf21339b1aa" },
+    { name = "my-lib", git = "https://github.com/kimata/my-py-lib?rev=eba490264559b0c1f60bef8c2b334a78111de759" },
     { name = "pyserial", specifier = ">=3.5" },
     { name = "pyzmq", specifier = ">=26.4.0" },
 ]
