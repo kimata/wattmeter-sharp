@@ -26,7 +26,6 @@ build-image:
 
     needs:
         - generate-tag
-        - build-vue
 
     variables:
         BUILDER: builder
