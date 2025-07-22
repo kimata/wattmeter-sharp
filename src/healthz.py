@@ -25,7 +25,7 @@ def check_liveness(target_list, port=None):
             return False
 
     if port is not None:
-        return my_lib.healthz.check_port(port)
+        return my_lib.healthz.check_tcp_port(port)
     else:
         return True
 
