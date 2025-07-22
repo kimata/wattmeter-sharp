@@ -119,19 +119,35 @@ test-walk-through:
         reports:
             junit: tests/evidence/junit-report.xml
 
-# test-docker:
-#     stage: test
-#     needs:
-#         - generate-tag
-#         - build-image
+test-docker:
+    stage: test
+    needs:
+        - generate-tag
+        - build-image
 
-#     variables:
-#         HEMS_SERVER_HOST: proxy.green-rabbit.net
+    variables:
+        HEMS_SERVER_HOST: proxy.green-rabbit.net
 
-#     script:
-#         - >
-#             docker run -t --label job=${CI_JOB_NAME} ${CI_REGISTRY_IMAGE}:${TAG}
-#             ./src/sharp_hems_logger.py -s ${HEMS_SERVER_HOST} -d
+    script:
+        # クリーンアップ: 古いコンテナを停止
+        - >
+            for id in $(docker ps --filter "label=job=${CI_PROJECT_NAME}-${CI_JOB_NAME}" --format "{{.ID}}"); do
+                started_at=$(docker inspect --format '{{.State.StartedAt}}' "$id")
+                started_epoch=$(date --date="$started_at" +%s)
+                now_epoch=$(date +%s)
+                diff=$(( now_epoch - started_epoch ))
+
+                if [ "$diff" -ge 600 ]; then
+                    echo "Stopping container $id (running for $diff seconds)"
+                    docker stop -t 10 "$id" || true
+                fi
+            done
+
+        - >
+            docker run --tty
+            --name ${CI_JOB_NAME}-${CI_JOB_ID} --label job=${CI_PROJECT_NAME}-${CI_JOB_NAME}
+            ${CI_REGISTRY_IMAGE}:${TAG}
+            ./src/sharp_hems_logger.py -s ${HEMS_SERVER_HOST} -d
 
 tag-latest:
     stage: tag-latest
@@ -164,8 +180,8 @@ deploy:
         - build-image
         - job: test-walk-through
           artifacts: false
-        # - job: test-docker
-        #   artifacts: false
+        - job: test-docker
+          artifacts: false
 
     image:
         name: gitlab.green-rabbit.net:5050/kimata/local-kubectl:250715_c88f3965
