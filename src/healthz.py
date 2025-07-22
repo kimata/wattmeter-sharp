@@ -3,10 +3,11 @@
 Liveness のチェックを行います
 
 Usage:
-  healthz.py [-c CONFIG] [-p PORT] [-p SERVER_PORT] [-D]
+  healthz.py [-c CONFIG] [-s] [-p SERVER_PORT] [-D]
 
 Options:
   -c CONFIG         : CONFIG を設定ファイルとして読み込んで実行します。[default: config.yaml]
+  -s                : サーバーモード。
   -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します。 [default: 4444]
   -D                : デバッグモードで動作します。
 """
@@ -40,6 +41,7 @@ if __name__ == "__main__":
     args = docopt.docopt(__doc__)
 
     config_file = args["-c"]
+    server_mode = args["-s"]
     port = args["-p"]
     server_port = int(os.environ.get("HEMS_SERVER_PORT", args["-p"]))
     debug_mode = args["-D"]
@@ -57,7 +59,7 @@ if __name__ == "__main__":
         for name in ["measure"]
     ]
 
-    if check_liveness(target_list, server_port):
+    if check_liveness(target_list, server_port if server_mode else None):
         logging.info("OK.")
         sys.exit(0)
     else:
