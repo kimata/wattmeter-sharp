@@ -4,6 +4,10 @@ variables:
     UV_LINK_MODE: copy
     UV_CACHE_DIR: .uv-cache
 
+default:
+    before_script:
+        - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
 stages:
     - generate-tag
     - build
@@ -31,9 +35,6 @@ build-image:
         BUILDER: builder
         BUILD_KIT_IMAGE: gitlab.green-rabbit.net:5050/kimata/local-buildkit:250705_7cc0d1c
 
-    before_script:
-        - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
-
     script:
         - 'echo "Building: ${CI_REGISTRY_IMAGE}:${TAG}"'
 
@@ -45,7 +46,6 @@ build-image:
         - |
             docker buildx create \
                 --name ${BUILDER} \
-                --driver docker-container \
                 --driver-opt image=${BUILD_KIT_IMAGE} \
                 --use \
                 --config /etc/buildkitd.toml
@@ -129,9 +129,6 @@ test-docker:
     variables:
         HEMS_SERVER_HOST: proxy.green-rabbit.net
 
-    before_script:
-        - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
-
     script:
         # クリーンアップ: 古いコンテナを停止
         - >
@@ -163,9 +160,6 @@ tag-latest:
           artifacts: false
         - job: test-docker
           artifacts: false
-
-    before_script:
-        - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
 
     script:
         - 'echo "Tagging multi-arch image ${CI_REGISTRY_IMAGE}:${TAG} as latest"'
