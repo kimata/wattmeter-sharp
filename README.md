@@ -43,41 +43,41 @@
 
 ```mermaid
 graph TB
-    subgraph "HEMSデバイス"
-        A[SHARP JH-AG01<br/>HEMSコントローラ]
-        B[電力プラグ<br/>センサー]
+    subgraph hems[HEMSデバイス]
+        A[SHARP JH-AG01 HEMSコントローラ]
+        B[電力プラグセンサー]
         A -.->|Zigbee| B
     end
 
-    subgraph "データ収集層"
-        C[sharp_hems_server.py<br/>シリアル受信サーバー]
-        A -->|UART<br/>115200bps| C
+    subgraph collect[データ収集層]
+        C[sharp_hems_server シリアル受信サーバー]
+        A -->|UART 115200bps| C
     end
 
-    subgraph "データ配信層"
-        D[ZeroMQ PUB<br/>ポート:4444]
+    subgraph distribute[データ配信層]
+        D[ZeroMQ PUB ポート4444]
         C -->|Publish| D
     end
 
-    subgraph "データ処理層"
-        E[sharp_hems_logger.py<br/>電力データロガー]
-        F[sharp_hems_dump.py<br/>パケットダンプ]
-        D -->|Subscribe<br/>"serial"チャンネル| E
+    subgraph process[データ処理層]
+        E[sharp_hems_logger 電力データロガー]
+        F[sharp_hems_dump パケットダンプ]
+        D -->|Subscribe serialチャンネル| E
         D -->|Subscribe| F
     end
 
-    subgraph "データ保存層"
+    subgraph store[データ保存層]
         G[Fluentd]
-        H[InfluxDB<br/>時系列DB]
-        I[packet.dump<br/>ダンプファイル]
+        H[InfluxDB 時系列DB]
+        I[packet.dump ダンプファイル]
         E -->|送信| G
         G -->|書き込み| H
         F -->|保存| I
     end
 
-    subgraph "監視層"
-        J[sharp_hems_status.py<br/>ステータスチェック]
-        K[healthz.py<br/>ヘルスチェック]
+    subgraph monitor[監視層]
+        J[sharp_hems_status ステータスチェック]
+        K[healthz ヘルスチェック]
         H -->|クエリ| J
         E -.->|liveness| K
     end
@@ -132,27 +132,27 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    subgraph "入力データ"
-        A1[シリアルパケット<br/>Header + Payload]
+    subgraph input[入力データ]
+        A1[シリアルパケット Header + Payload]
     end
 
-    subgraph "パケット解析"
-        B1{パケット種別<br/>header[1]}
-        B2[0x08: IEEE Address]
-        B3[0x12: Device ID]
-        B4[0x2C: Power Data]
+    subgraph parse[パケット解析]
+        B1{パケット種別 header_1}
+        B2[0x08 IEEE Address]
+        B3[0x12 Device ID]
+        B4[0x2C Power Data]
     end
 
-    subgraph "データ変換"
+    subgraph transform[データ変換]
         C1[アドレス収集]
-        C2[ID-アドレス<br/>マッピング]
-        C3[電力計算<br/>WATT_SCALE適用]
+        C2[IDアドレスマッピング]
+        C3[電力計算 WATT_SCALE適用]
     end
 
-    subgraph "データ保存"
-        D1[(device_cache.yaml<br/>デバイス情報)]
-        D2[(InfluxDB<br/>時系列データ)]
-        D3[(packet.dump<br/>生データ)]
+    subgraph store[データ保存]
+        D1[(device_cache.yaml デバイス情報)]
+        D2[(InfluxDB 時系列データ)]
+        D3[(packet.dump 生データ)]
     end
 
     A1 --> B1
