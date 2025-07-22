@@ -47,7 +47,7 @@ build-image:
                 --name ${BUILDER} \
                 --driver-opt image=${BUILD_KIT_IMAGE} \
                 --use \
-                --config ~/.docker/config.json
+                --config /etc/buildkitd.toml
 
         - docker buildx use ${BUILDER}
         - docker buildx inspect --bootstrap
