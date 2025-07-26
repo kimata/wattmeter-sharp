@@ -1,19 +1,34 @@
 serial:
     port: /dev/ttyUSB0
+
 fluentd:
     host: proxy.green-rabbit.net
     data:
         tag: hems
         label: sharp
         field: power
+
 influxdb:
     url: http://proxy.green-rabbit.net:8086
-    token: strBCB9segqccgxsR5Xe_9RnCqkBFYX9aOKvxVR4lr3iLEb7HXuGqsN40YU6DIb6TZm9bvKLW5OWQS7sB8AQbQ==
+    token: tE0mEqUCOoDxGc_aKshQMtvY5HeGHxc76rNZ_i1XnXz8haa9_35uP_-X7P7IwykR_Q8aFRNAGWRrR59AFAx5qw==
     org: home
     bucket: sensor
+
 device:
     define: device.example.yaml
     cache: data/dev_id.dat
+
+metrics:
+    data: data/metrics.db
+
+webapp:
+    timezone:
+        offset: "+9"
+        name: JST
+        zone: Asia/Tokyo
+
+    static_dir_path: react/dist
+
 liveness:
     file:
         measure: /dev/shm/healthz

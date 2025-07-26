@@ -82,6 +82,48 @@
                 "define"
             ]
         },
+        "metrics": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "data"
+            ]
+        },
+        "webapp": {
+            "type": "object",
+            "properties": {
+                "timezone": {
+                    "type": "object",
+                    "properties": {
+                        "offset": {
+                            "type": "string"
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "zone": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "name",
+                        "offset",
+                        "zone"
+                    ]
+                },
+                "static_dir_path": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "static_dir_path",
+                "timezone"
+            ]
+        },
         "liveness": {
             "type": "object",
             "properties": {
@@ -146,6 +188,8 @@
         "fluentd",
         "influxdb",
         "liveness",
-        "serial"
+        "metrics",
+        "serial",
+        "webapp"
     ]
 }
