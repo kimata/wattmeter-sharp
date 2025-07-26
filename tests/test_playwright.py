@@ -10,8 +10,8 @@ APP_URL_TMPL = "http://{host}:{port}/wattmeter-sharp/"
 
 
 @pytest.fixture(scope="session", autouse=True)
-def env_mock(mocker):
-    with mocker.patch.dict(
+def env_mock():
+    with pytest.mock.patch.dict(
         "os.environ",
         {
             "TEST": "true",
