@@ -24,8 +24,20 @@ import sharp_hems.device
 import sharp_hems.notify
 import sharp_hems.serial_pubsub
 import sharp_hems.sniffer
+from sharp_hems.metrics.collector import MetricsCollector
 
 SCHEMA_CONFIG = "config.schema"
+
+
+def record_metrics(metrics_collector, data):
+    """メトリクス収集を記録する"""
+    try:
+        name = sharp_hems.device.get_name(data["addr"])
+        if name is not None:
+            metrics_collector.record_heartbeat(name)
+            logging.debug("Recorded metrics for %s", name)
+    except Exception:
+        logging.exception("Failed to record metrics")
 
 
 def fluent_send(sender, label, field, data, liveness_file):
@@ -58,18 +70,21 @@ def process_packet(handle, header, payload):
             handle, header, payload, lambda _: (logging.info("OK"), os._exit(0))
         )
     else:
-        sharp_hems.sniffer.process_packet(
-            handle,
-            header,
-            payload,
-            lambda data: fluent_send(
+
+        def on_data_received(data):
+            # Fluentdに送信
+            fluent_send(
                 handle["sender"],
                 config["fluentd"]["data"]["label"],
                 config["fluentd"]["data"]["field"],
                 data,
                 handle["liveness"],
-            ),
-        )
+            )
+            # メトリクス収集も記録
+            if "metrics_collector" in handle:
+                record_metrics(handle["metrics_collector"], data)
+
+        sharp_hems.sniffer.process_packet(handle, header, payload, on_data_received)
 
 
 def start(handle):
@@ -117,17 +132,27 @@ if __name__ == "__main__":
     )
     sender = my_lib.fluentd_util.get_handle(config["fluentd"]["data"]["tag"], host=config["fluentd"]["host"])
 
-    start(
-        {
-            "sender": sender,
-            "device": {
-                "define": dev_define_file,
-                "cache": dev_cache_file,
-            },
-            "data": {
-                "label": config["fluentd"]["data"]["label"],
-                "field": config["fluentd"]["data"]["field"],
-            },
-            "liveness": liveness_file,
-        }
-    )
+    # メトリクスコレクターを初期化
+    metrics_collector = None
+    if "metrics" in config:
+        metrics_db_path = pathlib.Path(config["metrics"]["data"])
+        metrics_collector = MetricsCollector(metrics_db_path)
+        logging.info("Initialize metrics collector (db: %s)", metrics_db_path)
+
+    handle = {
+        "sender": sender,
+        "device": {
+            "define": dev_define_file,
+            "cache": dev_cache_file,
+        },
+        "data": {
+            "label": config["fluentd"]["data"]["label"],
+            "field": config["fluentd"]["data"]["field"],
+        },
+        "liveness": liveness_file,
+    }
+
+    if metrics_collector:
+        handle["metrics_collector"] = metrics_collector
+
+    start(handle)

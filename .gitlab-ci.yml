@@ -33,7 +33,6 @@ build-image:
 
     variables:
         BUILDER: builder
-        BUILD_KIT_IMAGE: gitlab.green-rabbit.net:5050/kimata/local-buildkit:250705_7cc0d1c
 
     script:
         - 'echo "Building: ${CI_REGISTRY_IMAGE}:${TAG}"'
@@ -58,6 +57,8 @@ build-image:
             --cache-to type=inline --cache-to type=registry,ref=${CI_REGISTRY_IMAGE}:cache,mode=max
             --build-arg IMAGE_BUILD_DATE=$(date --iso-8601=seconds)
             --tag ${CI_REGISTRY_IMAGE}:${TAG} --push .
+    after_script:
+        - docker buildx rm ${BUILDER} || true
 
 test-prepare:
     stage: build
