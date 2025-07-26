@@ -39,11 +39,10 @@ yarn-error.log
 /libpeerconnection.log
 testem.log
 /typings
-/flask/data/
 /tests/evidence/
 config.yaml
 device.yaml
-
+/data/
 # System files
 .DS_Store
 Thumbs.db
