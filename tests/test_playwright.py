@@ -9,17 +9,6 @@ from playwright.sync_api import expect
 APP_URL_TMPL = "http://{host}:{port}/wattmeter-sharp/"
 
 
-@pytest.fixture(scope="session", autouse=True)
-def env_mock():
-    with pytest.mock.patch.dict(
-        "os.environ",
-        {
-            "TEST": "true",
-        },
-    ) as fixture:
-        yield fixture
-
-
 @pytest.fixture(autouse=True)
 def _page_init(page, host, port):
     wait_for_server_ready(host, port)
