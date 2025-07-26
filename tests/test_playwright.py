@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import logging
+import re
 import time
 
 import pytest
@@ -76,13 +77,13 @@ def test_sensor_table_columns(page, host, port):
     expect(table).to_be_visible()
 
     # 列ヘッダーの存在確認
-    expect(table.locator("th")).to_contain_text("#")
-    expect(table.locator("th")).to_contain_text("センサー名")
-    expect(table.locator("th")).to_contain_text("累計稼働率")
-    expect(table.locator("th")).to_contain_text("過去24時間")
-    expect(table.locator("th")).to_contain_text("消費電力")
-    expect(table.locator("th")).to_contain_text("最終受信")
-    expect(table.locator("th")).to_contain_text("状態")
+    expect(table.locator("th:nth-child(1)")).to_contain_text("#")
+    expect(table.locator("th:nth-child(2)")).to_contain_text("センサー名")
+    expect(table.locator("th:nth-child(3)")).to_contain_text("累計稼働率")
+    expect(table.locator("th:nth-child(4)")).to_contain_text("過去24時間")
+    expect(table.locator("th:nth-child(5)")).to_contain_text("消費電力")
+    expect(table.locator("th:nth-child(6)")).to_contain_text("最終受信")
+    expect(table.locator("th:nth-child(7)")).to_contain_text("状態")
 
 
 def test_sensor_table_sorting(page, host, port):
@@ -111,7 +112,7 @@ def test_sensor_table_data_format(page, host, port):
 
     # テーブルにデータ行があることを確認
     rows = table.locator("tbody tr")
-    expect(rows).to_have_count_greater_than(0)
+    expect(rows.first).to_be_visible()
 
     # 最初のデータ行をチェック
     if rows.count() > 0:
@@ -121,10 +122,10 @@ def test_sensor_table_data_format(page, host, port):
         cells = first_row.locator("td")
 
         # インデックス番号（数字）
-        expect(cells.nth(0)).to_match_text(r"^\d+$")
+        expect(cells.nth(0)).to_contain_text(re.compile(r"^\d+$"))
 
         # センサー名（文字列）
-        expect(cells.nth(1)).to_have_text(lambda text: len(text) > 0)
+        expect(cells.nth(1)).not_to_be_empty()
 
         # 稼働率（%付きの数値）
         expect(cells.nth(2)).to_contain_text("%")
@@ -132,16 +133,18 @@ def test_sensor_table_data_format(page, host, port):
 
         # 消費電力（W単位またはN/A）
         power_cell = cells.nth(4)
-        expect(power_cell).to_match_text(r"^(\d{1,3}(,\d{3})*\s*W|N/A)$")
+        expect(power_cell).to_contain_text(re.compile(r"^(\d{1,3}(,\d{3})*\s*W|N/A)$"))
 
         # 最終受信（日付形式または-）
         last_received_cell = cells.nth(5)
-        expect(last_received_cell).to_match_text(r"^(\d{1,2}/\d{1,2}\s+\d{2}:\d{2}:\d{2}.*|-|)$")
+        expect(last_received_cell).to_contain_text(
+            re.compile(r"^(\d{1,2}/\d{1,2}\s+\d{2}:\d{2}:\d{2}.*|-|)$")
+        )
 
         # 状態（バッジ）
         status_cell = cells.nth(6)
         expect(status_cell.locator(".badge")).to_have_count(1)
-        expect(status_cell.locator(".badge")).to_match_text(r"^(正常|警告|異常)$")
+        expect(status_cell.locator(".badge")).to_contain_text(re.compile(r"^(正常|警告|異常)$"))
 
 
 def test_error_handling(page, host, port):
@@ -151,7 +154,7 @@ def test_error_handling(page, host, port):
 
     # 404エラーページまたはエラーメッセージが表示されることを期待
     # (実際の実装に依存するため、基本的なページ構造のチェックのみ)
-    expect(page).to_have_title(lambda title: title is not None)
+    expect(page).to_have_title("404 Not Found")
 
 
 def test_responsive_design(page, host, port):
