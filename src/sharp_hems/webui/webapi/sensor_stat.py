@@ -314,24 +314,39 @@ def _get_latest_power_consumption(config, sensor_name: str) -> int | None:
 
     """
     try:
-        # InfluxDBから最新の電力データを取得
-        sensor_data = my_lib.sensor_data.fetch_data(
-            config["influxdb"],
-            "{tag}.{label}".format(
-                tag=config["fluentd"]["data"]["tag"], label=config["fluentd"]["data"]["label"]
-            ),
-            sensor_name,
-            config["fluentd"]["data"]["field"],
-            "-1h",  # 過去1時間のデータを取得
-        )
-
-        if sensor_data["valid"] and sensor_data["data"]:
-            # 最新のデータポイントから電力値を取得
-            latest_point = sensor_data["data"][-1]
-            return int(latest_point[1]) if latest_point[1] is not None else None
-        else:
+        # InfluxDBの設定をチェック
+        if "influxdb" not in config:
+            logging.warning("InfluxDB configuration not found for sensor %s", sensor_name)
             return None
 
-    except Exception as e:
-        logging.warning("Failed to get power consumption for %s: %s", sensor_name, e)
+        # InfluxDBから最新の電力データを取得
+        measurement = "{tag}.{label}".format(
+            tag=config["fluentd"]["data"]["tag"], label=config["fluentd"]["data"]["label"]
+        )
+        field = config["fluentd"]["data"]["field"]
+
+        sensor_data = my_lib.sensor_data.fetch_data(
+            config["influxdb"],
+            measurement,
+            sensor_name,
+            field,
+            last=True,
+        )
+
+        if sensor_data.get("valid"):
+            # valueキーから直接電力値を取得（sharp_hems_status.pyと同じ方式）
+            power_value = sensor_data.get("value")[0]
+            if power_value is not None:
+                power_value = int(power_value)
+                logging.info("Power value for %s: %s", sensor_name, power_value)
+                return power_value
+            else:
+                logging.info("Power value is None for %s", sensor_name)
+                return None
+        else:
+            logging.info("No valid power data found for %s", sensor_name)
+            return None
+
+    except Exception:
+        logging.exception("Failed to get power consumption for %s", sensor_name)
         return None

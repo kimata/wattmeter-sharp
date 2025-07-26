@@ -23,7 +23,8 @@ export function SensorTable({ sensors }: SensorTableProps) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
     } else {
       setSortKey(key)
-      setSortDirection('asc')
+      // 状態列は降順、他の列は降順を初期値とする
+      setSortDirection('desc')
     }
   }
 
@@ -135,16 +136,16 @@ export function SensorTable({ sensors }: SensorTableProps) {
                   過去24時間 {getSortIcon('availability_24h')}
                 </th>
                 <th
-                  onClick={() => handleSort('last_received')}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  最終受信 {getSortIcon('last_received')}
-                </th>
-                <th
                   onClick={() => handleSort('power_consumption')}
                   style={{ cursor: 'pointer', userSelect: 'none' }}
                 >
                   消費電力 {getSortIcon('power_consumption')}
+                </th>
+                <th
+                  onClick={() => handleSort('last_received')}
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                >
+                  最終受信 {getSortIcon('last_received')}
                 </th>
                 <th
                   onClick={() => handleSort('status')}
@@ -172,7 +173,7 @@ export function SensorTable({ sensors }: SensorTableProps) {
                         >
                         </div>
                       </div>
-                      <span className="text-nowrap text-end" style={{ minWidth: '50px' }}>
+                      <span className="text-nowrap" style={{ width: '60px', textAlign: 'right', display: 'inline-block' }}>
                         {sensor.availability_total.toFixed(1)}%
                       </span>
                     </div>
@@ -190,10 +191,13 @@ export function SensorTable({ sensors }: SensorTableProps) {
                         >
                         </div>
                       </div>
-                      <span className="text-nowrap text-end" style={{ minWidth: '50px' }}>
+                      <span className="text-nowrap" style={{ width: '60px', textAlign: 'right', display: 'inline-block' }}>
                         {sensor.availability_24h.toFixed(1)}%
                       </span>
                     </div>
+                  </td>
+                  <td className="text-end">
+                    {formatPowerConsumption(sensor.power_consumption)}
                   </td>
                   <td>
                     {sensor.last_received ? (
@@ -206,9 +210,6 @@ export function SensorTable({ sensors }: SensorTableProps) {
                     ) : (
                       '-'
                     )}
-                  </td>
-                  <td className="text-end">
-                    {formatPowerConsumption(sensor.power_consumption)}
                   </td>
                   <td>
                     <span className={`badge ${
