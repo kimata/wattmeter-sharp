@@ -104,11 +104,11 @@ export function SensorTable({ sensors }: SensorTableProps) {
   }
 
   return (
-    <div className="row">
+    <div className="row" data-testid="sensor-table">
       <div className="col">
         <h2 className="h4 mb-3">センサー詳細</h2>
         <div className="table-responsive">
-          <table className="table table-striped table-hover">
+          <table className="table table-striped table-hover" data-testid="sensors-table">
             <thead>
               <tr>
                 <th

@@ -11,7 +11,7 @@ export function Footer({ updateTime }: FooterProps) {
   const imageBuildDate = import.meta.env.VITE_IMAGE_BUILD_DATE || 'Unknown'
 
   return (
-    <div className="p-1 float-end text-end m-2 mt-4">
+    <div className="p-1 float-end text-end m-2 mt-4" data-testid="footer">
       <small>
         <p className="text-muted m-0">
           <small>更新日時: {updateTime}</small>

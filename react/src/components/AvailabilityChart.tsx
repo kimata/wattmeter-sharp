@@ -124,7 +124,7 @@ export function AvailabilityChart({ sensors }: AvailabilityChartProps) {
   }
 
   return (
-    <div className="row mb-5">
+    <div className="row mb-5" data-testid="availability-chart">
       <div className="col">
         <Chart type="bar" data={chartData} options={chartOptions} />
       </div>

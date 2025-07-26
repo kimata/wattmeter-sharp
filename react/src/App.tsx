@@ -35,11 +35,11 @@ function App() {
   const daysSinceStart = dayjs().diff(startDate, 'day')
 
   return (
-    <div className="App">
+    <div className="App" data-testid="app">
       <div className="container mt-3">
-        <h1 className="mb-4">SHARP HEMS センサー稼働状態</h1>
+        <h1 className="mb-4" data-testid="app-title">SHARP HEMS センサー稼働状態</h1>
 
-        <div className="mb-4">
+        <div className="mb-4" data-testid="data-info">
           <p className="text-muted">
             データ収集開始日: {startDate.format('YYYY年MM月DD日')} ({daysSinceStart}日前)
           </p>
