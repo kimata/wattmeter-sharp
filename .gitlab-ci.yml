@@ -35,6 +35,7 @@ build-react:
     before_script: []
 
     script:
+        - cd react
         - npm ci --cache .npm --prefer-offline
         - npm run build
     artifacts:
