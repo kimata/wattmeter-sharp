@@ -7,11 +7,9 @@ interface CommunicationErrorTableProps {
 export function CommunicationErrorTable({ errors }: CommunicationErrorTableProps) {
   if (errors.length === 0) {
     return (
-      <div className="card">
-        <div className="card-header">
-          <h5 className="card-title mb-0">最新の通信エラーログ（50件）</h5>
-        </div>
-        <div className="card-body">
+      <div className="row">
+        <div className="col">
+          <h2 className="h4 mb-3">最新の通信エラーログ（50件）</h2>
           <p className="text-muted">通信エラーはありません。</p>
         </div>
       </div>
@@ -19,11 +17,9 @@ export function CommunicationErrorTable({ errors }: CommunicationErrorTableProps
   }
 
   return (
-    <div className="card">
-      <div className="card-header">
-        <h5 className="card-title mb-0">最新の通信エラーログ（{errors.length}件）</h5>
-      </div>
-      <div className="card-body">
+    <div className="row">
+      <div className="col">
+        <h2 className="h4 mb-3">最新の通信エラーログ（{errors.length}件）</h2>
         <div className="table-responsive">
           <table className="table table-striped table-hover">
             <thead>

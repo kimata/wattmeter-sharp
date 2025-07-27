@@ -45,8 +45,7 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
         position: 'top' as const,
       },
       title: {
-        display: true,
-        text: `通信エラー発生回数（過去24時間、合計: ${histogram.total_errors}件）`,
+        display: false,
       },
     },
     scales: {
@@ -77,11 +76,9 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
   }
 
   return (
-    <div className="card mb-4">
-      <div className="card-header">
-        <h5 className="card-title mb-0">通信エラー発生状況</h5>
-      </div>
-      <div className="card-body">
+    <div className="row mb-4">
+      <div className="col">
+        <h2 className="h4 mb-3">通信エラー発生状況（過去24時間、合計: {histogram.total_errors}件）</h2>
         <Bar data={data} options={options} />
       </div>
     </div>

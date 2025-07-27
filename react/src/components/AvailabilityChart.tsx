@@ -92,11 +92,7 @@ function AvailabilityChartComponent({ sensors }: AvailabilityChartProps) {
         position: 'top' as const,
       },
       title: {
-        display: true,
-        text: 'センサー稼働率',
-        font: {
-          size: 16
-        }
+        display: false
       },
       tooltip: {
         callbacks: {
@@ -127,6 +123,7 @@ function AvailabilityChartComponent({ sensors }: AvailabilityChartProps) {
   return (
     <div className="row mb-5" data-testid="availability-chart">
       <div className="col">
+        <h2 className="h4 mb-3">センサー稼働率</h2>
         <Chart type="bar" data={chartData} options={chartOptions} />
       </div>
     </div>
