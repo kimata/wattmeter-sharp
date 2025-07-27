@@ -141,10 +141,10 @@ def test_sensor_table_data_format(page, host, port):
             re.compile(r"^(\d{1,2}/\d{1,2}\s+\d{2}:\d{2}:\d{2}.*|-|)$")
         )
 
-        # 状態（バッジ）
+        # 状態（タグ）
         status_cell = cells.nth(6)
-        expect(status_cell.locator(".badge")).to_have_count(1)
-        expect(status_cell.locator(".badge")).to_contain_text(re.compile(r"^(正常|警告|異常)$"))
+        expect(status_cell.locator(".tag")).to_have_count(1)
+        expect(status_cell.locator(".tag")).to_contain_text(re.compile(r"^(正常|警告|異常)$"))
 
 
 def test_error_handling(page, host, port):
