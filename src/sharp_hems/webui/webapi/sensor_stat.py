@@ -14,6 +14,55 @@ from sharp_hems.metrics.collector import MetricsCollector
 blueprint = flask.Blueprint("webapi-sensor-stat", __name__)
 
 
+@blueprint.route("/api/communication_errors", methods=["GET"])
+@my_lib.flask_util.support_jsonp
+def communication_errors():
+    """
+    通信エラー情報を返すAPI。
+
+    Returns:
+        JSON: {
+            "histogram": {
+                "bins": [...],
+                "bin_labels": [...],
+                "total_errors": 123
+            },
+            "latest_errors": [
+                {
+                    "sensor_name": "センサー名",
+                    "datetime": "YYYY-MM-DD HH:MM:SS",
+                    "timestamp": 1234567890,
+                    "error_type": "consecutive_failure"
+                }
+            ]
+        }
+
+    """
+    try:
+        # 設定から必要な情報を取得
+        config = flask.current_app.config["CONFIG"]
+        if not config:
+            flask.abort(500, "Configuration not found")
+
+        # メトリクスDBのパスを取得
+        metrics_db_path = Path(config["metrics"]["data"])
+        collector = MetricsCollector(metrics_db_path)
+
+        # 通信エラーヒストグラム（過去24時間）を取得
+        histogram = collector.get_communication_errors_histogram(hours=24)
+
+        # 最新の通信エラーログ（50件）を取得
+        latest_errors = collector.get_latest_communication_errors(limit=50)
+
+        result = {"histogram": histogram, "latest_errors": latest_errors}
+
+        return flask.jsonify(result)
+
+    except Exception as e:
+        logging.exception("Failed to get communication errors")
+        flask.abort(500, f"Failed to get communication errors: {e!s}")
+
+
 @blueprint.route("/api/sensor_stat", methods=["GET"])
 @my_lib.flask_util.support_jsonp
 def sensor_stat():

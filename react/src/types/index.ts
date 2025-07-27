@@ -10,3 +10,21 @@ export interface ApiResponse {
     start_date: string;
     sensors: SensorData[];
 }
+
+export interface CommunicationError {
+    sensor_name: string;
+    datetime: string;
+    timestamp: number;
+    error_type: string;
+}
+
+export interface CommunicationErrorHistogram {
+    bins: number[];
+    bin_labels: string[];
+    total_errors: number;
+}
+
+export interface CommunicationErrorResponse {
+    histogram: CommunicationErrorHistogram;
+    latest_errors: CommunicationError[];
+}

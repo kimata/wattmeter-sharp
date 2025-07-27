@@ -48,6 +48,26 @@ class MetricsCollector:
                 )
             """)
 
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS communication_errors (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sensor_name TEXT NOT NULL,
+                    timestamp INTEGER NOT NULL,
+                    time_slot INTEGER NOT NULL,
+                    error_type TEXT NOT NULL DEFAULT 'consecutive_failure'
+                )
+            """)
+
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_comm_errors_sensor_timestamp
+                ON communication_errors(sensor_name, timestamp)
+            """)
+
+            conn.execute("""
+                CREATE INDEX IF NOT EXISTS idx_comm_errors_timestamp
+                ON communication_errors(timestamp)
+            """)
+
             conn.commit()
 
     @contextmanager
@@ -124,6 +144,9 @@ class MetricsCollector:
                     (sensor_name, timestamp, target_slot),
                 )
                 conn.commit()
+
+            # 通信エラー検出を実行
+            self._detect_communication_errors(sensor_name, target_slot)
 
             logging.debug(
                 "Recorded heartbeat for %s at slot %d (timestamp: %d, seconds_into_slot: %d)",
@@ -235,3 +258,172 @@ class MetricsCollector:
                 ),
             )
             conn.commit()
+
+    def _detect_communication_errors(self, sensor_name: str, current_slot: int):
+        """
+        通信エラーを検出し、データベースに記録します。
+
+        受信できたスロットをnとして、n-1, n-2, n-3, n-4, n-5のいずれかで
+        受信成功している場合、最後に受信成功したスロットからn-1までの
+        全スロットを通信エラーとして記録します。
+
+        Args:
+            sensor_name: センサー名
+            current_slot: 現在受信成功したタイムスロット（n）
+
+        """
+        try:
+            with self._get_connection() as conn:
+                # 過去5スロット（n-1 から n-5）で受信成功したスロットを検索
+                past_slots = [current_slot - i for i in range(1, 6)]  # [n-1, n-2, n-3, n-4, n-5]
+
+                placeholders = ",".join("?" * len(past_slots))
+                cursor = conn.execute(
+                    f"""
+                    SELECT MAX(time_slot) FROM sensor_heartbeats
+                    WHERE sensor_name = ? AND time_slot IN ({placeholders})
+                    """,
+                    (sensor_name, *past_slots),
+                )
+
+                result = cursor.fetchone()
+                last_success_slot = result[0] if result and result[0] is not None else None
+
+                # 過去5スロットで受信成功していない場合は通信エラーとして扱わない
+                if last_success_slot is None:
+                    return
+
+                # 最後に受信成功したスロットから現在のスロットの直前までが失敗スロット
+                failed_slots = list(range(last_success_slot + 1, current_slot))
+
+                if not failed_slots:
+                    return  # 連続失敗がない場合
+
+                # 既に記録済みのエラーを除外
+                existing_placeholders = ",".join("?" * len(failed_slots))
+                cursor = conn.execute(
+                    f"""
+                    SELECT time_slot FROM communication_errors
+                    WHERE sensor_name = ? AND time_slot IN ({existing_placeholders})
+                    """,
+                    (sensor_name, *failed_slots),
+                )
+
+                existing_error_slots = {row[0] for row in cursor.fetchall()}
+                new_error_slots = [slot for slot in failed_slots if slot not in existing_error_slots]
+
+                # 新しい通信エラーを記録
+                for slot in new_error_slots:
+                    error_timestamp = slot * 360  # スロットをタイムスタンプに変換
+                    conn.execute(
+                        """
+                        INSERT INTO communication_errors
+                        (sensor_name, timestamp, time_slot, error_type)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (sensor_name, error_timestamp, slot, "consecutive_failure"),
+                    )
+
+                    logging.info(
+                        "Detected communication error for %s at slot %d (timestamp: %d)",
+                        sensor_name,
+                        slot,
+                        error_timestamp,
+                    )
+
+                if new_error_slots:
+                    conn.commit()
+                    logging.debug(
+                        "Recorded %d communication errors for %s (slots %d-%d)",
+                        len(new_error_slots),
+                        sensor_name,
+                        min(new_error_slots),
+                        max(new_error_slots),
+                    )
+
+        except sqlite3.Error:
+            logging.exception("Failed to detect communication errors")
+
+    def get_communication_errors_histogram(self, hours: int = 24) -> dict:
+        """
+        指定された時間内の通信エラーのヒストグラムを取得します。
+
+        Args:
+            hours: 遡る時間数（デフォルト24時間）
+
+        Returns:
+            48個のbinに分けられたヒストグラムデータ
+
+        """
+        now = int(time.time())
+        start_timestamp = now - (hours * 3600)  # hours時間前
+
+        # 48 binのヒストグラム（30分刻み）を初期化
+        histogram = [0] * 48
+
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                """
+                SELECT timestamp FROM communication_errors
+                WHERE timestamp >= ? AND timestamp <= ?
+                ORDER BY timestamp
+                """,
+                (start_timestamp, now),
+            )
+
+            for row in cursor.fetchall():
+                error_timestamp = row[0]
+
+                # エラー発生時刻を今日の0時からの経過秒数に変換
+                seconds_from_midnight = error_timestamp % 86400
+
+                # 30分刻みのbin（0-47）に分類
+                bin_index = min(int(seconds_from_midnight // 1800), 47)  # 1800秒 = 30分
+                histogram[bin_index] += 1
+
+        return {
+            "bins": histogram,
+            "bin_labels": [f"{i // 2:02d}:{(i % 2) * 30:02d}" for i in range(48)],
+            "total_errors": sum(histogram),
+        }
+
+    def get_latest_communication_errors(self, limit: int = 50) -> list:
+        """
+        最新の通信エラーログを取得します。
+
+        Args:
+            limit: 取得する件数（デフォルト50件）
+
+        Returns:
+            通信エラーログのリスト
+
+        """
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                """
+                SELECT sensor_name, timestamp, error_type
+                FROM communication_errors
+                ORDER BY timestamp DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+
+            errors = []
+            for row in cursor.fetchall():
+                sensor_name, timestamp, error_type = row
+
+                # タイムスタンプを日時文字列に変換
+                dt = datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
+                formatted_datetime = dt.strftime("%Y-%m-%d %H:%M:%S")
+
+                errors.append(
+                    {
+                        "sensor_name": sensor_name,
+                        "datetime": formatted_datetime,
+                        "timestamp": timestamp,
+                        "error_type": error_type,
+                    }
+                )
+
+            return errors

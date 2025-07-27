@@ -5,11 +5,13 @@ import localizedFormat from 'dayjs/plugin/localizedFormat'
 import 'dayjs/locale/ja'
 import './App.css'
 
-import type { ApiResponse } from './types'
+import type { ApiResponse, CommunicationErrorResponse } from './types'
 import { useApi } from './hooks/useApi'
 import { ErrorMessage } from './components/ErrorMessage'
 import { LazyAvailabilityChart } from './components/LazyAvailabilityChart'
 import { SensorTable } from './components/SensorTable'
+import { CommunicationErrorChart } from './components/CommunicationErrorChart'
+import { CommunicationErrorTable } from './components/CommunicationErrorTable'
 import { Footer } from './components/Footer'
 import { SkeletonChart, SkeletonTable } from './components/Skeleton'
 
@@ -20,6 +22,7 @@ dayjs.locale('ja')
 function App() {
   const [updateTime, setUpdateTime] = useState(dayjs().format('YYYY年MM月DD日 HH:mm:ss'))
   const { data, error } = useApi<ApiResponse>('/wattmeter-sharp/api/sensor_stat', { interval: 60000 })
+  const { data: errorData, error: errorApiError } = useApi<CommunicationErrorResponse>('/wattmeter-sharp/api/communication_errors', { interval: 60000 })
 
   useEffect(() => {
     if (data) {
@@ -28,6 +31,7 @@ function App() {
   }, [data])
 
   if (error) return <ErrorMessage error={error} />
+  if (errorApiError) return <ErrorMessage error={errorApiError} />
 
   const startDate = data ? dayjs(data.start_date) : null
   const daysSinceStart = startDate ? dayjs().diff(startDate, 'day') : 0
@@ -59,6 +63,18 @@ function App() {
 
         {data ? (
           <SensorTable sensors={data.sensors} />
+        ) : (
+          <SkeletonTable />
+        )}
+
+        {errorData ? (
+          <CommunicationErrorChart histogram={errorData.histogram} />
+        ) : (
+          <SkeletonChart />
+        )}
+
+        {errorData ? (
+          <CommunicationErrorTable errors={errorData.latest_errors} />
         ) : (
           <SkeletonTable />
         )}
