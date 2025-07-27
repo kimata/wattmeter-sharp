@@ -7,11 +7,11 @@ import './App.css'
 
 import type { ApiResponse } from './types'
 import { useApi } from './hooks/useApi'
-import { Loading } from './components/Loading'
 import { ErrorMessage } from './components/ErrorMessage'
-import { AvailabilityChart } from './components/AvailabilityChart'
+import { LazyAvailabilityChart } from './components/LazyAvailabilityChart'
 import { SensorTable } from './components/SensorTable'
 import { Footer } from './components/Footer'
+import { SkeletonChart, SkeletonTable } from './components/Skeleton'
 
 dayjs.extend(relativeTime)
 dayjs.extend(localizedFormat)
@@ -19,7 +19,7 @@ dayjs.locale('ja')
 
 function App() {
   const [updateTime, setUpdateTime] = useState(dayjs().format('YYYY年MM月DD日 HH:mm:ss'))
-  const { data, loading, error } = useApi<ApiResponse>('/wattmeter-sharp/api/sensor_stat', { interval: 60000 })
+  const { data, error } = useApi<ApiResponse>('/wattmeter-sharp/api/sensor_stat', { interval: 60000 })
 
   useEffect(() => {
     if (data) {
@@ -27,26 +27,41 @@ function App() {
     }
   }, [data])
 
-  if (loading) return <Loading />
   if (error) return <ErrorMessage error={error} />
-  if (!data) return null
 
-  const startDate = dayjs(data.start_date)
-  const daysSinceStart = dayjs().diff(startDate, 'day')
+  const startDate = data ? dayjs(data.start_date) : null
+  const daysSinceStart = startDate ? dayjs().diff(startDate, 'day') : 0
 
   return (
     <div className="App" data-testid="app">
       <div className="container mt-3">
         <h1 className="mb-4" data-testid="app-title">SHARP HEMS センサー稼働状態</h1>
 
-        <div className="mb-4" data-testid="data-info">
-          <p className="text-muted">
-            データ収集開始日: {startDate.format('YYYY年MM月DD日')} ({daysSinceStart}日前)
-          </p>
-        </div>
+        {data ? (
+          <div className="mb-4" data-testid="data-info">
+            <p className="text-muted">
+              データ収集開始日: {startDate!.format('YYYY年MM月DD日')} ({daysSinceStart}日前)
+            </p>
+          </div>
+        ) : (
+          <div className="mb-4">
+            <div className="placeholder-glow">
+              <span className="placeholder col-4"></span>
+            </div>
+          </div>
+        )}
 
-        <AvailabilityChart sensors={data.sensors} />
-        <SensorTable sensors={data.sensors} />
+        {data ? (
+          <LazyAvailabilityChart sensors={data.sensors} />
+        ) : (
+          <SkeletonChart />
+        )}
+
+        {data ? (
+          <SensorTable sensors={data.sensors} />
+        ) : (
+          <SkeletonTable />
+        )}
       </div>
       <Footer updateTime={updateTime} />
     </div>

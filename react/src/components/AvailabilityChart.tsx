@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -31,8 +32,8 @@ interface AvailabilityChartProps {
   sensors: SensorData[]
 }
 
-export function AvailabilityChart({ sensors }: AvailabilityChartProps) {
-  const chartData = {
+function AvailabilityChartComponent({ sensors }: AvailabilityChartProps) {
+  const chartData = useMemo(() => ({
     labels: sensors.map(sensor => sensor.name),
     datasets: [
       {
@@ -77,9 +78,9 @@ export function AvailabilityChart({ sensors }: AvailabilityChartProps) {
         yAxisID: 'y'
       }
     ]
-  }
+  }), [sensors])
 
-  const chartOptions = {
+  const chartOptions = useMemo(() => ({
     responsive: true,
     interaction: {
       mode: 'index' as const,
@@ -121,7 +122,7 @@ export function AvailabilityChart({ sensors }: AvailabilityChartProps) {
         }
       }
     }
-  }
+  }), [])
 
   return (
     <div className="row mb-5" data-testid="availability-chart">
@@ -131,3 +132,5 @@ export function AvailabilityChart({ sensors }: AvailabilityChartProps) {
     </div>
   )
 }
+
+export const AvailabilityChart = memo(AvailabilityChartComponent)

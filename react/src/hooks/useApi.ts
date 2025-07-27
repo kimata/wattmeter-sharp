@@ -11,13 +11,13 @@ export function useApi<T>(url: string, options?: UseApiOptions) {
 
     const fetchData = useCallback(async () => {
         try {
+            setError(null);
             const response = await fetch(url);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             const jsonData = await response.json();
             setData(jsonData);
-            setError(null);
         } catch (err) {
             setError(
                 err instanceof Error
