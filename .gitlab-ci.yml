@@ -40,7 +40,7 @@ build-react:
         - npm run build
     artifacts:
         paths:
-            - dist/
+            - react/dist/
     cache:
         key: "${CI_JOB_NAME}"
         paths:
@@ -151,7 +151,7 @@ test-playwright:
 
     script:
         - uv run playwright install --with-deps chromium
-        - uv run python ./src/webui.py -d 2>&1 > flask_log.txt &
+        - uv run python ./src/webui.py 2>&1 > flask_log.txt &
 
         - >
             uv run pytest --tracing on --output tests/evidence/playwright
@@ -195,7 +195,7 @@ test-docker:
             docker run --tty
             --name ${CI_JOB_NAME}-${CI_JOB_ID} --label job=${CI_PROJECT_NAME}-${CI_JOB_NAME}
             ${CI_REGISTRY_IMAGE}:${TAG}
-            ./src/sharp_hems_logger.py -s ${HEMS_SERVER_HOST} -d
+            ./src/sharp_hems_logger.py -s ${HEMS_SERVER_HOST}
 
 test-playwright-docker:
     stage: test
@@ -251,6 +251,18 @@ test-playwright-docker:
             APP_PORT=$(docker port ${CI_JOB_NAME}-${CI_JOB_ID} 5000 | cut -d: -f2)
         - >
             echo "Testing at http://${APP_HOST}:${APP_PORT}/wattmeter-sharp/"
+        - echo "Debug: Checking port mapping and container status"
+        - docker port ${CI_JOB_NAME}-${CI_JOB_ID}
+        - docker logs --tail 10 ${CI_JOB_NAME}-${CI_JOB_ID}
+        - >
+            echo "Debug: Testing direct curl to root path first"
+        - >
+            curl -v --connect-timeout 5 --max-time 10 http://${APP_HOST}:${APP_PORT}/ || echo "Root path failed"
+        - >
+            echo "Debug: Testing curl to wattmeter-sharp path"
+        - >
+            curl -v --connect-timeout 5 --max-time 10
+            http://${APP_HOST}:${APP_PORT}/wattmeter-sharp/ || echo "Wattmeter path failed"
         - >
             timeout 90 bash -c "until curl -f --connect-timeout 5 --max-time 10
             http://${APP_HOST}:${APP_PORT}/wattmeter-sharp/ > /dev/null 2>&1;
