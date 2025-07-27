@@ -150,6 +150,11 @@ test-playwright:
         - test-prepare
 
     script:
+        - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.green-rabbit.net/kimata/wattmeter-config.git
+        - mv wattmeter-config/sharp_config.yaml config.yaml
+        - mv wattmeter-config/sharp_device.yaml device.yaml
+        - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
+
         - uv run playwright install --with-deps chromium
         - uv run python ./src/webui.py 2>&1 > flask_log.txt &
 
@@ -207,9 +212,6 @@ test-playwright-docker:
         - generate-tag
         - build-image
         - test-prepare
-
-    variables:
-        HEMS_SERVER_HOST: proxy.green-rabbit.net
 
     script:
         # クリーンアップ: 古いコンテナを停止
