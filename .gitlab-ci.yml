@@ -251,7 +251,7 @@ test-playwright-docker:
             APP_PORT=$(docker port ${CI_JOB_NAME}-${CI_JOB_ID} 5000 | cut -d: -f2)
         - >
             echo "Testing at http://${APP_HOST}:${APP_PORT}/wattmeter-sharp/"
-        - echo "Debug: Checking port mapping and container status"
+        - 'echo "Debug: Checking port mapping and container status"'
         - docker port ${CI_JOB_NAME}-${CI_JOB_ID}
         - docker logs --tail 10 ${CI_JOB_NAME}-${CI_JOB_ID}
         - >
