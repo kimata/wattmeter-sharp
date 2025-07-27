@@ -20,7 +20,6 @@ import flask
 import flask_cors
 import my_lib.config
 import my_lib.logger
-import my_lib.webapp.base
 
 SCHEMA_CONFIG = "config.schema"
 
@@ -49,6 +48,8 @@ def create_app(config):
 
     my_lib.webapp.config.URL_PREFIX = "/wattmeter-sharp"
     my_lib.webapp.config.init(config)
+
+    import my_lib.webapp.base
 
     import sharp_hems.webui.webapi.sensor_stat
 
