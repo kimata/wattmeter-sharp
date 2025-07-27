@@ -42,7 +42,7 @@ testem.log
 /tests/evidence/
 config.yaml
 device.yaml
-/data/
+/data
 # System files
 .DS_Store
 Thumbs.db
