@@ -344,9 +344,11 @@ deploy:
 
         - kubectl -n hems set image deployment/wattmeter-sharp-server wattmeter-sharp-server=${IMAGE}
         - kubectl -n hems set image deployment/wattmeter-sharp-client wattmeter-sharp-client=${IMAGE}
+        - kubectl -n hems set image deployment/wattmeter-sharp-webui wattmeter-sharp-webui=${IMAGE}
 
         - kubectl -n hems rollout status deployment/wattmeter-sharp-server --timeout=300s
         - kubectl -n hems rollout status deployment/wattmeter-sharp-client --timeout=300s
+        - kubectl -n hems rollout status deployment/wattmeter-sharp-webui --timeout=300s
 
         - 'echo "✓ All deployments updated successfully to $TAG"'
 
