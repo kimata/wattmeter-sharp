@@ -253,7 +253,7 @@ test-playwright-docker:
             echo "Testing at http://${APP_HOST}:${APP_PORT}/wattmeter-sharp/"
         - >
             timeout 90 bash -c "until curl -f --connect-timeout 5 --max-time 10
-            http://${APP_HOST}:${APP_PORT}/rasp-water/ > /dev/null 2>&1;
+            http://${APP_HOST}:${APP_PORT}/wattmeter-sharp/ > /dev/null 2>&1;
             do echo 'Waiting for app to start...'; sleep 3; done" || ACCESS_FAILED=1
 
         - |
