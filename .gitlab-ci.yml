@@ -301,6 +301,10 @@ tag-latest:
           artifacts: false
         - job: test-docker
           artifacts: false
+        - job: test-playwright
+          artifacts: false
+        - job: test-playwright-docker
+          artifacts: false
 
     script:
         - 'echo "Tagging multi-arch image ${CI_REGISTRY_IMAGE}:${TAG} as latest"'
@@ -320,6 +324,10 @@ deploy:
         - job: test-walk-through
           artifacts: false
         - job: test-docker
+          artifacts: false
+        - job: test-playwright
+          artifacts: false
+        - job: test-playwright-docker
           artifacts: false
 
     image:
