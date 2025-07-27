@@ -50,6 +50,7 @@ def create_app(config):
     my_lib.webapp.config.init(config)
 
     import my_lib.webapp.base
+    import my_lib.webapp.util
 
     import sharp_hems.webui.webapi.sensor_stat
 
@@ -61,6 +62,7 @@ def create_app(config):
 
     app.register_blueprint(my_lib.webapp.base.blueprint, url_prefix=my_lib.webapp.config.URL_PREFIX)
     app.register_blueprint(my_lib.webapp.base.blueprint_default)
+    app.register_blueprint(my_lib.webapp.util.blueprint, url_prefix=my_lib.webapp.config.URL_PREFIX)
     app.register_blueprint(
         sharp_hems.webui.webapi.sensor_stat.blueprint, url_prefix=my_lib.webapp.config.URL_PREFIX
     )
