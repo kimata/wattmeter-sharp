@@ -124,19 +124,19 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
 
   return (
     <>
-      <div className={`row mb-4 ${styles.chartSection}`} id="communication-error-chart">
-        <div className="col">
-          <div className={styles.sectionHeader}>
-            <h2 className="h4 mb-0">
-              <span className={styles.icon}>📊</span>
-              通信エラー発生状況（過去24時間、合計: {histogram.total_errors}件）
-              <i
-                className={`fas fa-link ${styles.permalinkIcon}`}
-                onClick={() => copyPermalink('communication-error-chart')}
-                title="パーマリンクをコピー"
-              />
-            </h2>
-          </div>
+      <div className={`section ${styles.chartSection}`} id="communication-error-chart">
+        <div className={styles.sectionHeader}>
+          <h2 className="title is-4">
+            <span className={styles.icon}>📊</span>
+            通信エラー発生状況（過去24時間、合計: {histogram.total_errors}件）
+            <i
+              className={`fas fa-link ${styles.permalinkIcon}`}
+              onClick={() => copyPermalink('communication-error-chart')}
+              title="パーマリンクをコピー"
+            />
+          </h2>
+        </div>
+        <div className="chart-container" style={{ position: 'relative', height: '350px', margin: '0.5rem 0' }}>
           <Bar data={data} options={options} />
         </div>
       </div>

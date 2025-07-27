@@ -55,21 +55,19 @@ export function CommunicationErrorTable({ errors }: CommunicationErrorTableProps
   if (errors.length === 0) {
     return (
       <>
-        <div className={`row ${styles.errorTableSection}`} id="communication-error-log">
-          <div className="col">
-            <div className={styles.sectionHeader}>
-              <h2 className="h4 mb-0">
-                <span className={styles.icon}>📋</span>
-                最新の通信エラーログ（50件）
-                <i
-                  className={`fas fa-link ${styles.permalinkIcon}`}
-                  onClick={() => copyPermalink('communication-error-log')}
-                  title="パーマリンクをコピー"
-                />
-              </h2>
-            </div>
-            <p className="text-muted">通信エラーはありません。</p>
+        <div className={`section ${styles.errorTableSection}`} id="communication-error-log">
+          <div className={styles.sectionHeader}>
+            <h2 className="title is-4">
+              <span className={styles.icon}>📋</span>
+              最新の通信エラーログ（50件）
+              <i
+                className={`fas fa-link ${styles.permalinkIcon}`}
+                onClick={() => copyPermalink('communication-error-log')}
+                title="パーマリンクをコピー"
+              />
+            </h2>
           </div>
+          <p className="has-text-grey">通信エラーはありません。</p>
         </div>
         <div ref={notificationRef} className={styles.copyNotification}></div>
       </>
@@ -78,41 +76,39 @@ export function CommunicationErrorTable({ errors }: CommunicationErrorTableProps
 
   return (
     <>
-      <div className={`row ${styles.errorTableSection}`} id="communication-error-log">
-        <div className="col">
-          <div className={styles.sectionHeader}>
-            <h2 className="h4 mb-0">
-              <span className={styles.icon}>📋</span>
-              最新の通信エラーログ（{errors.length}件）
-              <i
-                className={`fas fa-link ${styles.permalinkIcon}`}
-                onClick={() => copyPermalink('communication-error-log')}
-                title="パーマリンクをコピー"
-              />
-            </h2>
-          </div>
-          <div className="table-responsive">
-            <table className="table table-striped table-hover">
-              <thead>
-                <tr>
-                  <th scope="col">日時</th>
-                  <th scope="col">センサー名</th>
+      <div className={`section ${styles.errorTableSection}`} id="communication-error-log">
+        <div className={styles.sectionHeader}>
+          <h2 className="title is-4">
+            <span className={styles.icon}>📋</span>
+            最新の通信エラーログ（{errors.length}件）
+            <i
+              className={`fas fa-link ${styles.permalinkIcon}`}
+              onClick={() => copyPermalink('communication-error-log')}
+              title="パーマリンクをコピー"
+            />
+          </h2>
+        </div>
+        <div className="table-container">
+          <table className="table is-striped is-hoverable is-fullwidth">
+            <thead>
+              <tr>
+                <th>日時</th>
+                <th>センサー名</th>
+              </tr>
+            </thead>
+            <tbody>
+              {errors.map((error, index) => (
+                <tr key={`${error.sensor_name}-${error.timestamp}-${index}`}>
+                  <td>
+                    <span className="is-family-monospace">{error.datetime}</span>
+                  </td>
+                  <td>
+                    <span className="tag is-danger">{error.sensor_name}</span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {errors.map((error, index) => (
-                  <tr key={`${error.sensor_name}-${error.timestamp}-${index}`}>
-                    <td>
-                      <span className="font-monospace">{error.datetime}</span>
-                    </td>
-                    <td>
-                      <span className="badge bg-danger">{error.sensor_name}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
       <div ref={notificationRef} className={styles.copyNotification}></div>

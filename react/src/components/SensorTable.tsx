@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/ja'
 import type { SensorData } from '../types'
 import { AnimatedNumber } from './common/AnimatedNumber'
+import styles from './CommunicationError.module.css'
 
 dayjs.extend(relativeTime)
 dayjs.locale('ja')
@@ -18,6 +19,51 @@ type SortDirection = 'asc' | 'desc'
 export function SensorTable({ sensors }: SensorTableProps) {
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+  const notificationRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // ページ読み込み時にハッシュがあれば該当要素にスクロール
+    if (window.location.hash === '#sensor-details') {
+      const element = document.getElementById('sensor-details')
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 500)
+      }
+    }
+  }, [])
+
+  const copyPermalink = (elementId: string) => {
+    const currentUrl = window.location.origin + window.location.pathname
+    const permalink = currentUrl + '#' + elementId
+
+    navigator.clipboard.writeText(permalink).then(() => {
+      showCopyNotification('パーマリンクをコピーしました')
+      window.history.pushState(null, '', '#' + elementId)
+    }).catch(() => {
+      // フォールバック
+      const textArea = document.createElement('textarea')
+      textArea.value = permalink
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+
+      showCopyNotification('パーマリンクをコピーしました')
+      window.history.pushState(null, '', '#' + elementId)
+    })
+  }
+
+  const showCopyNotification = (message: string) => {
+    if (!notificationRef.current) return
+
+    notificationRef.current.textContent = message
+    notificationRef.current.classList.add(styles.show)
+
+    setTimeout(() => {
+      notificationRef.current?.classList.remove(styles.show)
+    }, 3000)
+  }
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -101,11 +147,21 @@ export function SensorTable({ sensors }: SensorTableProps) {
 
 
   return (
-    <div className="row" data-testid="sensor-table">
-      <div className="col">
-        <h2 className="h4 mb-3">センサー詳細</h2>
-        <div className="table-responsive">
-          <table className="table table-striped table-hover" data-testid="sensors-table">
+    <>
+      <div className={`section ${styles.errorTableSection}`} id="sensor-details" data-testid="sensor-table">
+        <div className={styles.sectionHeader}>
+          <h2 className="title is-4">
+            <span className={styles.icon}>🔧</span>
+            センサー詳細
+            <i
+              className={`fas fa-link ${styles.permalinkIcon}`}
+              onClick={() => copyPermalink('sensor-details')}
+              title="パーマリンクをコピー"
+            />
+          </h2>
+        </div>
+        <div className="table-container">
+          <table className="table is-striped is-hoverable is-fullwidth" data-testid="sensors-table">
             <thead>
               <tr>
                 <th
@@ -158,42 +214,36 @@ export function SensorTable({ sensors }: SensorTableProps) {
                   <td>{sortKey === 'index' ? sensors.indexOf(sensor) + 1 : index + 1}</td>
                   <td>{sensor.name}</td>
                   <td>
-                    <div className="d-flex align-items-center">
-                      <div className="progress me-3" style={{ height: '20px', width: '100px' }}>
-                        <div
-                          className="progress-bar bg-secondary"
-                          role="progressbar"
-                          style={{ width: `${sensor.availability_total}%` }}
-                          aria-valuenow={sensor.availability_total}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                        >
-                        </div>
-                      </div>
-                      <span className="text-nowrap" style={{ width: '60px', textAlign: 'right', display: 'inline-block' }}>
+                    <div className="is-flex is-align-items-center">
+                      <progress
+                        className="progress is-info mr-3"
+                        value={sensor.availability_total}
+                        max="100"
+                        style={{ height: '20px', width: '100px' }}
+                      >
+                        {sensor.availability_total}%
+                      </progress>
+                      <span className="has-text-right" style={{ width: '60px', textAlign: 'right', display: 'inline-block' }}>
                         <AnimatedNumber value={sensor.availability_total} decimals={1} />%
                       </span>
                     </div>
                   </td>
                   <td>
-                    <div className="d-flex align-items-center">
-                      <div className="progress me-3" style={{ height: '20px', width: '100px' }}>
-                        <div
-                          className="progress-bar bg-secondary"
-                          role="progressbar"
-                          style={{ width: `${sensor.availability_24h}%` }}
-                          aria-valuenow={sensor.availability_24h}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                        >
-                        </div>
-                      </div>
-                      <span className="text-nowrap" style={{ width: '60px', textAlign: 'right', display: 'inline-block' }}>
+                    <div className="is-flex is-align-items-center">
+                      <progress
+                        className="progress is-info mr-3"
+                        value={sensor.availability_24h}
+                        max="100"
+                        style={{ height: '20px', width: '100px' }}
+                      >
+                        {sensor.availability_24h}%
+                      </progress>
+                      <span className="has-text-right" style={{ width: '60px', textAlign: 'right', display: 'inline-block' }}>
                         <AnimatedNumber value={sensor.availability_24h} decimals={1} />%
                       </span>
                     </div>
                   </td>
-                  <td className="text-end">
+                  <td className="has-text-right">
                     {sensor.power_consumption !== null ? (
                       <>
                         <AnimatedNumber value={sensor.power_consumption} decimals={0} useComma={true} /> W
@@ -206,7 +256,7 @@ export function SensorTable({ sensors }: SensorTableProps) {
                     {sensor.last_received ? (
                       <>
                         {dayjs(sensor.last_received).format('M/D HH:mm:ss')}
-                        <span className="text-muted ms-1">
+                        <span className="has-text-grey ml-1">
                           {getRelativeTime(sensor.last_received)}
                         </span>
                       </>
@@ -215,10 +265,10 @@ export function SensorTable({ sensors }: SensorTableProps) {
                     )}
                   </td>
                   <td>
-                    <span className={`badge ${
-                      sensor.availability_total >= 90 ? 'bg-success' :
-                      sensor.availability_total >= 70 ? 'bg-warning' :
-                      'bg-danger'
+                    <span className={`tag ${
+                      sensor.availability_total >= 90 ? 'is-success' :
+                      sensor.availability_total >= 70 ? 'is-warning' :
+                      'is-danger'
                     }`}>
                       {sensor.availability_total >= 90 ? '正常' :
                        sensor.availability_total >= 70 ? '警告' :
@@ -231,6 +281,7 @@ export function SensorTable({ sensors }: SensorTableProps) {
           </table>
         </div>
       </div>
-    </div>
+      <div ref={notificationRef} className={styles.copyNotification}></div>
+    </>
   )
 }

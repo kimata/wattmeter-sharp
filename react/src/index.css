@@ -54,6 +54,23 @@ button:focus-visible {
     outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Skeleton animation */
+@keyframes skeleton-loading {
+    0% {
+        background-position: -200px 0;
+    }
+    100% {
+        background-position: calc(200px + 100%) 0;
+    }
+}
+
+/* Japanese font family */
+.japanese-font {
+    font-family:
+        "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP",
+        "Yu Gothic", sans-serif;
+}
+
 @media (prefers-color-scheme: light) {
     :root {
         color: #213547;

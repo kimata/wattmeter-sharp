@@ -1,4 +1,4 @@
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useRef, useEffect } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,6 +14,7 @@ import {
 } from 'chart.js'
 import { Chart } from 'react-chartjs-2'
 import type { SensorData } from '../types'
+import styles from './CommunicationError.module.css'
 
 ChartJS.register(
   CategoryScale,
@@ -33,6 +34,51 @@ interface AvailabilityChartProps {
 }
 
 function AvailabilityChartComponent({ sensors }: AvailabilityChartProps) {
+  const notificationRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // ページ読み込み時にハッシュがあれば該当要素にスクロール
+    if (window.location.hash === '#sensor-availability') {
+      const element = document.getElementById('sensor-availability')
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 500)
+      }
+    }
+  }, [])
+
+  const copyPermalink = (elementId: string) => {
+    const currentUrl = window.location.origin + window.location.pathname
+    const permalink = currentUrl + '#' + elementId
+
+    navigator.clipboard.writeText(permalink).then(() => {
+      showCopyNotification('パーマリンクをコピーしました')
+      window.history.pushState(null, '', '#' + elementId)
+    }).catch(() => {
+      // フォールバック
+      const textArea = document.createElement('textarea')
+      textArea.value = permalink
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+
+      showCopyNotification('パーマリンクをコピーしました')
+      window.history.pushState(null, '', '#' + elementId)
+    })
+  }
+
+  const showCopyNotification = (message: string) => {
+    if (!notificationRef.current) return
+
+    notificationRef.current.textContent = message
+    notificationRef.current.classList.add(styles.show)
+
+    setTimeout(() => {
+      notificationRef.current?.classList.remove(styles.show)
+    }, 3000)
+  }
   const chartData = useMemo(() => ({
     labels: sensors.map(sensor => sensor.name),
     datasets: [
@@ -121,12 +167,25 @@ function AvailabilityChartComponent({ sensors }: AvailabilityChartProps) {
   }), [])
 
   return (
-    <div className="row mb-5" data-testid="availability-chart">
-      <div className="col">
-        <h2 className="h4 mb-3">センサー稼働率</h2>
-        <Chart type="bar" data={chartData} options={chartOptions} />
+    <>
+      <div className={`section ${styles.chartSection}`} id="sensor-availability" data-testid="availability-chart">
+        <div className={styles.sectionHeader}>
+          <h2 className="title is-4">
+            <span className={styles.icon}>📊</span>
+            センサー稼働率
+            <i
+              className={`fas fa-link ${styles.permalinkIcon}`}
+              onClick={() => copyPermalink('sensor-availability')}
+              title="パーマリンクをコピー"
+            />
+          </h2>
+        </div>
+        <div className="chart-container" style={{ position: 'relative', height: '350px', margin: '0.5rem 0' }}>
+          <Chart type="bar" data={chartData} options={chartOptions} />
+        </div>
       </div>
-    </div>
+      <div ref={notificationRef} className={styles.copyNotification}></div>
+    </>
   )
 }
 

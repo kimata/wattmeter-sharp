@@ -37,23 +37,28 @@ function App() {
   const daysSinceStart = startDate ? dayjs().diff(startDate, 'day') : 0
 
   return (
-    <div className="App" data-testid="app">
-      <div className="container mt-3">
-        <h1 className="mb-4" data-testid="app-title">SHARP HEMS センサー稼働状態</h1>
+    <div className="App japanese-font" data-testid="app">
+      <div className="container is-fluid" style={{ padding: '0.5rem' }}>
+        <section className="section" style={{ padding: '1rem 0.5rem' }}>
+          <div className="container" style={{ maxWidth: '100%', padding: 0 }}>
+            <h1 className="title is-2 has-text-centered" data-testid="app-title">
+              <span className="icon is-large"><i className="fas fa-chart-line"></i></span>
+              SHARP HEMS センサー稼働状態
+            </h1>
 
-        {data ? (
-          <div className="mb-4" data-testid="data-info">
-            <p className="text-muted">
-              データ収集開始日: {startDate!.format('YYYY年MM月DD日')} ({daysSinceStart}日前)
-            </p>
-          </div>
-        ) : (
-          <div className="mb-4">
-            <div className="placeholder-glow">
-              <span className="placeholder col-4"></span>
-            </div>
-          </div>
-        )}
+            {data ? (
+              <div className="mb-4" data-testid="data-info">
+                <p className="subtitle has-text-centered">
+                  データ収集開始日: {startDate!.format('YYYY年MM月DD日')} ({daysSinceStart}日前)
+                </p>
+              </div>
+            ) : (
+              <div className="mb-4">
+                <div className="is-loading">
+                  <span className="button is-loading is-white"></span>
+                </div>
+              </div>
+            )}
 
         {data ? (
           <LazyAvailabilityChart sensors={data.sensors} />
@@ -73,11 +78,13 @@ function App() {
           <SkeletonChart />
         )}
 
-        {errorData ? (
-          <CommunicationErrorTable errors={errorData.latest_errors} />
-        ) : (
-          <SkeletonTable />
-        )}
+            {errorData ? (
+              <CommunicationErrorTable errors={errorData.latest_errors} />
+            ) : (
+              <SkeletonTable />
+            )}
+          </div>
+        </section>
       </div>
       <Footer updateTime={updateTime} />
     </div>

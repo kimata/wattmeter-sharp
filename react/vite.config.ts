@@ -17,8 +17,7 @@ export default defineConfig({
                 // ベンダーチャンクを分離して効率的なキャッシュを実現
                 manualChunks: {
                     vendor: ["react", "react-dom"],
-                    bootstrap: ["bootstrap", "react-bootstrap"],
-                    utils: ["dayjs"],
+                    utils: ["dayjs", "chart.js"],
                 },
             },
         },
@@ -31,14 +30,7 @@ export default defineConfig({
     },
     // 依存関係の事前バンドル最適化
     optimizeDeps: {
-        include: [
-            "react",
-            "react-dom",
-            "bootstrap",
-            "chart.js",
-            "dayjs",
-            "framer-motion",
-        ],
+        include: ["react", "react-dom", "chart.js", "dayjs", "framer-motion"],
     },
     // 開発サーバー最適化
     server: {
