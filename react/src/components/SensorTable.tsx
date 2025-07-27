@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/ja'
 import type { SensorData } from '../types'
+import { AnimatedNumber } from './common/AnimatedNumber'
 
 dayjs.extend(relativeTime)
 dayjs.locale('ja')
@@ -98,10 +99,6 @@ export function SensorTable({ sensors }: SensorTableProps) {
     }
   }
 
-  const formatPowerConsumption = (power: number | null) => {
-    if (power === null) return 'N/A'
-    return `${power.toLocaleString()} W`
-  }
 
   return (
     <div className="row" data-testid="sensor-table">
@@ -174,7 +171,7 @@ export function SensorTable({ sensors }: SensorTableProps) {
                         </div>
                       </div>
                       <span className="text-nowrap" style={{ width: '60px', textAlign: 'right', display: 'inline-block' }}>
-                        {sensor.availability_total.toFixed(1)}%
+                        <AnimatedNumber value={sensor.availability_total} decimals={1} />%
                       </span>
                     </div>
                   </td>
@@ -192,12 +189,18 @@ export function SensorTable({ sensors }: SensorTableProps) {
                         </div>
                       </div>
                       <span className="text-nowrap" style={{ width: '60px', textAlign: 'right', display: 'inline-block' }}>
-                        {sensor.availability_24h.toFixed(1)}%
+                        <AnimatedNumber value={sensor.availability_24h} decimals={1} />%
                       </span>
                     </div>
                   </td>
                   <td className="text-end">
-                    {formatPowerConsumption(sensor.power_consumption)}
+                    {sensor.power_consumption !== null ? (
+                      <>
+                        <AnimatedNumber value={sensor.power_consumption} decimals={0} useComma={true} /> W
+                      </>
+                    ) : (
+                      'N/A'
+                    )}
                   </td>
                   <td>
                     {sensor.last_received ? (
