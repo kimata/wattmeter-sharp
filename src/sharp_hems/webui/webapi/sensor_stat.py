@@ -11,7 +11,7 @@ import my_lib.sensor_data
 import sharp_hems.device
 from sharp_hems.metrics.collector import MetricsCollector
 
-blueprint = flask.Blueprint("webapi-sensor-stat", __name__, url_prefix=my_lib.webapp.config.URL_PREFIX)
+blueprint = flask.Blueprint("webapi-sensor-stat", __name__)
 
 
 @blueprint.route("/api/sensor_stat", methods=["GET"])
