@@ -3,12 +3,13 @@
 センサーから収集した消費電力データを Fluentd を使って送信します。
 
 Usage:
-  sharp_hmes_logger.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-d] [-D]
+  sharp_hmes_logger.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-n COUNT] [-d] [-D]
 
 Options:
   -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
   -s SERVER_HOST    : サーバーのホスト名を指定します。 [default: localhost]
   -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します。 [default: 4444]
+  -n COUNT          : n 回制御メッセージを受信したら終了します。0 は制限なし。 [default: 0]
   -d                : ダミーモードで動作します。
   -D                : デバッグモードで動作します。
 """
@@ -19,6 +20,7 @@ import pathlib
 
 import my_lib.fluentd_util
 import my_lib.footprint
+import my_lib.pretty
 
 import sharp_hems.device
 import sharp_hems.notify
@@ -65,10 +67,13 @@ def fluent_send(sender, label, field, data, liveness_file):
 def process_packet(handle, header, payload):
     sharp_hems.device.reload(handle["device"]["define"])
 
-    if os.environ.get("DUMMY_MODE", "false") == "true":
-        sharp_hems.sniffer.process_packet(
-            handle, header, payload, lambda _: (logging.info("OK"), os._exit(0))
-        )
+    if handle["dummy_mode"]:
+
+        def on_data_received(data):
+            logging.info(my_lib.pretty.format(data))
+            handle["packet"]["count"] += 1
+            if (handle["packet"]["max"] != 0) and (handle["packet"]["count"] >= handle["packet"]["max"]):
+                os._exit(0)
     else:
 
         def on_data_received(data):
@@ -84,7 +89,7 @@ def process_packet(handle, header, payload):
             if "metrics_collector" in handle:
                 record_metrics(handle["metrics_collector"], data)
 
-        sharp_hems.sniffer.process_packet(handle, header, payload, on_data_received)
+    sharp_hems.sniffer.process_packet(handle, header, payload, on_data_received)
 
 
 def start(handle):
@@ -108,6 +113,7 @@ if __name__ == "__main__":
     config_file = args["-c"]
     server_host = os.environ.get("HEMS_SERVER_HOST", args["-s"])
     server_port = int(os.environ.get("HEMS_SERVER_PORT", args["-p"]))
+    count = int(args["-n"])
     dummy_mode = os.environ.get("DUMMY_MODE", args["-d"])
     debug_mode = args["-D"]
 
@@ -123,7 +129,6 @@ if __name__ == "__main__":
 
     if dummy_mode:
         logging.info("DUMMY MODE")
-        os.environ["DUMMY_MODE"] = "true"
 
     logging.info(
         "Initialize Fluentd sender (host: %s, tag: %s)",
@@ -148,6 +153,11 @@ if __name__ == "__main__":
         "data": {
             "label": config["fluentd"]["data"]["label"],
             "field": config["fluentd"]["data"]["field"],
+        },
+        "dummy_mode": dummy_mode,
+        "packet": {
+            "count": 0,
+            "max": count,
         },
         "liveness": liveness_file,
     }
