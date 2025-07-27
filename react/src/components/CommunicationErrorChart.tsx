@@ -8,8 +8,10 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js'
+import { useRef, useEffect } from 'react'
 
 import type { CommunicationErrorHistogram } from '../types'
+import styles from './CommunicationError.module.css'
 
 ChartJS.register(
   CategoryScale,
@@ -25,6 +27,51 @@ interface CommunicationErrorChartProps {
 }
 
 export function CommunicationErrorChart({ histogram }: CommunicationErrorChartProps) {
+  const notificationRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // ページ読み込み時にハッシュがあれば該当要素にスクロール
+    if (window.location.hash === '#communication-error-chart') {
+      const element = document.getElementById('communication-error-chart')
+      if (element) {
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }, 500)
+      }
+    }
+  }, [])
+
+  const copyPermalink = (elementId: string) => {
+    const currentUrl = window.location.origin + window.location.pathname
+    const permalink = currentUrl + '#' + elementId
+
+    navigator.clipboard.writeText(permalink).then(() => {
+      showCopyNotification('パーマリンクをコピーしました')
+      window.history.pushState(null, '', '#' + elementId)
+    }).catch(() => {
+      // フォールバック
+      const textArea = document.createElement('textarea')
+      textArea.value = permalink
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+
+      showCopyNotification('パーマリンクをコピーしました')
+      window.history.pushState(null, '', '#' + elementId)
+    })
+  }
+
+  const showCopyNotification = (message: string) => {
+    if (!notificationRef.current) return
+
+    notificationRef.current.textContent = message
+    notificationRef.current.classList.add(styles.show)
+
+    setTimeout(() => {
+      notificationRef.current?.classList.remove(styles.show)
+    }, 3000)
+  }
   const data = {
     labels: histogram.bin_labels,
     datasets: [
@@ -76,11 +123,24 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
   }
 
   return (
-    <div className="row mb-4">
-      <div className="col">
-        <h2 className="h4 mb-3">通信エラー発生状況（過去24時間、合計: {histogram.total_errors}件）</h2>
-        <Bar data={data} options={options} />
+    <>
+      <div className={`row mb-4 ${styles.chartSection}`} id="communication-error-chart">
+        <div className="col">
+          <div className={styles.sectionHeader}>
+            <h2 className="h4 mb-0">
+              <span className={styles.icon}>📊</span>
+              通信エラー発生状況（過去24時間、合計: {histogram.total_errors}件）
+              <i
+                className={`fas fa-link ${styles.permalinkIcon}`}
+                onClick={() => copyPermalink('communication-error-chart')}
+                title="パーマリンクをコピー"
+              />
+            </h2>
+          </div>
+          <Bar data={data} options={options} />
+        </div>
       </div>
-    </div>
+      <div ref={notificationRef} className={styles.copyNotification}></div>
+    </>
   )
 }
