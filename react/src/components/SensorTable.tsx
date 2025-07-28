@@ -238,12 +238,12 @@ export function SensorTable({ sensors }: SensorTableProps) {
                   <td>{sortKey === 'index' ? sensors.indexOf(sensor) + 1 : index + 1}</td>
                   <td style={{ textAlign: 'left' }}>{sensor.name}</td>
                   <td>
-                    <div className="is-flex is-align-items-center">
+                    <div className="is-flex is-align-items-center" style={{ height: '100%' }}>
                       <progress
-                        className="progress mr-3"
+                        className="progress"
                         value={sensor.availability_total}
                         max="100"
-                        style={{ height: '20px', width: '100px' }}
+                        style={{ height: '16px', width: '100px', marginBottom: 0, marginRight: '0.75rem' }}
                       >
                         {sensor.availability_total}%
                       </progress>
@@ -253,12 +253,12 @@ export function SensorTable({ sensors }: SensorTableProps) {
                     </div>
                   </td>
                   <td>
-                    <div className="is-flex is-align-items-center">
+                    <div className="is-flex is-align-items-center" style={{ height: '100%' }}>
                       <progress
-                        className="progress mr-3"
+                        className="progress"
                         value={sensor.availability_24h}
                         max="100"
-                        style={{ height: '20px', width: '100px' }}
+                        style={{ height: '16px', width: '100px', marginBottom: 0, marginRight: '0.75rem' }}
                       >
                         {sensor.availability_24h}%
                       </progress>

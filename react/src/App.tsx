@@ -13,7 +13,7 @@ import { SensorTable } from './components/SensorTable'
 import { CommunicationErrorChart } from './components/CommunicationErrorChart'
 import { CommunicationErrorTable } from './components/CommunicationErrorTable'
 import { Footer } from './components/Footer'
-import { SkeletonChart, SkeletonTable } from './components/Skeleton'
+import { SkeletonChart, SkeletonTable, SkeletonErrorChart, SkeletonErrorTable } from './components/Skeleton'
 
 dayjs.extend(relativeTime)
 dayjs.extend(localizedFormat)
@@ -75,13 +75,13 @@ function App() {
         {errorData ? (
           <CommunicationErrorChart histogram={errorData.histogram} />
         ) : (
-          <SkeletonChart />
+          <SkeletonErrorChart />
         )}
 
             {errorData ? (
               <CommunicationErrorTable errors={errorData.latest_errors} />
             ) : (
-              <SkeletonTable />
+              <SkeletonErrorTable />
             )}
           </div>
         </section>

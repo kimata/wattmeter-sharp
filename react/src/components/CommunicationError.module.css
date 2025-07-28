@@ -13,8 +13,8 @@
     text-align: left; /* 左寄せ */
 }
 
-.sectionHeader .icon {
-    margin-right: 0.5rem;
+.sectionHeader :global(.icon) {
+    margin-right: 0.5em;
 }
 
 /* パーマリンクアイコン */
@@ -60,10 +60,12 @@
 .errorTableSection {
     margin-top: 1rem;
     margin-bottom: 1.5rem;
+    padding: 1.5rem 1.5rem !important;
 }
 
 .chartSection {
     margin-bottom: 1rem;
+    padding: 1.5rem 1.5rem !important;
 }
 
 /* チャートコンテナ */
@@ -73,6 +75,37 @@
     margin: 0.5rem 0;
     width: 100%;
     overflow-x: auto;
+}
+
+/* テーブルの行の高さを調整 */
+.errorTableSection table tbody tr {
+    height: 1.75rem !important;
+}
+
+.errorTableSection table tbody td {
+    padding: 0.25rem 0.75rem !important;
+    vertical-align: middle;
+    line-height: 1.2;
+}
+
+/* プログレスバーの高さとマージンを調整 */
+.errorTableSection table tbody td .progress {
+    height: 16px !important;
+    min-height: 16px !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    margin-right: 0.75rem !important;
+}
+
+/* Bulmaのプログレスのデフォルトマージンを上書き */
+.errorTableSection .progress:not(:last-child) {
+    margin-bottom: 0 !important;
+}
+
+/* プログレスバーを含むセルの高さと配置を調整 */
+.errorTableSection table tbody td {
+    height: 2.5rem;
+    padding: 0 0.75rem !important;
 }
 
 /* 最終受信列のレスポンシブデザイン */
