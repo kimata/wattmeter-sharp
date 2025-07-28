@@ -7,6 +7,7 @@ from pathlib import Path
 import flask
 import my_lib.flask_util
 import my_lib.sensor_data
+import my_lib.time
 
 import sharp_hems.device
 from sharp_hems.metrics.collector import MetricsCollector
@@ -53,6 +54,14 @@ def communication_errors():
 
         # 最新の通信エラーログ（50件）を取得
         latest_errors = collector.get_latest_communication_errors(limit=50)
+
+        # 通信エラーの時刻をUTCからJSTに変換
+        for error in latest_errors:
+            utc_datetime = datetime.datetime.strptime(error["datetime"], "%Y-%m-%d %H:%M:%S").replace(
+                tzinfo=datetime.timezone.utc
+            )
+            jst_datetime = utc_datetime.astimezone(my_lib.time.get_zoneinfo())
+            error["datetime"] = jst_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
         result = {"histogram": histogram, "latest_errors": latest_errors}
 
@@ -112,9 +121,10 @@ def sensor_stat():
             latest_timestamp = collector.get_latest_heartbeat(sensor_name)
             last_received = None
             if latest_timestamp:
-                last_received = datetime.datetime.fromtimestamp(
-                    latest_timestamp, datetime.timezone.utc
-                ).strftime("%Y-%m-%d %H:%M:%S")
+                # UTCからJSTに変換
+                utc_datetime = datetime.datetime.fromtimestamp(latest_timestamp, datetime.timezone.utc)
+                jst_datetime = utc_datetime.astimezone(my_lib.time.get_zoneinfo())
+                last_received = jst_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
             # 累計の稼働率を計算
             total_availability = _calculate_total_availability(collector, sensor_name, start_date)
