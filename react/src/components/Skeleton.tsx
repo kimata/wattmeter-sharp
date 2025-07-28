@@ -26,21 +26,26 @@ export function Skeleton({ className = '', height = '20px', width = '100%' }: Sk
 export function SkeletonChart() {
   return (
     <div className="section" data-testid="skeleton-chart">
-      <div className="box">
-        <div className="mb-3 has-text-centered">
-          <Skeleton height="24px" width="200px" />
-        </div>
-        <div className="is-flex is-justify-content-space-between is-align-items-end" style={{ height: '300px' }}>
-          {Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="is-flex is-flex-direction-column is-align-items-center">
-              <Skeleton
-                height={`${120 + Math.random() * 100}px`}
-                width="40px"
-                className="mb-2"
-              />
-              <Skeleton height="16px" width="60px" />
-            </div>
-          ))}
+      <div className="sectionHeader">
+        <h2 className="title is-4">
+          <span>📊</span>
+          <Skeleton height="24px" width="200px" className="ml-2" />
+        </h2>
+      </div>
+      <div className="table-container">
+        <div className="chart-container" style={{ position: 'relative', height: '350px', margin: '0.5rem 0' }}>
+          <div className="is-flex is-justify-content-space-between is-align-items-end" style={{ height: '100%' }}>
+            {Array.from({ length: 6 }, (_, i) => (
+              <div key={i} className="is-flex is-flex-direction-column is-align-items-center">
+                <Skeleton
+                  height={`${120 + Math.random() * 100}px`}
+                  width="40px"
+                  className="mb-2"
+                />
+                <Skeleton height="16px" width="60px" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -50,9 +55,14 @@ export function SkeletonChart() {
 export function SkeletonTable() {
   return (
     <div className="section" data-testid="skeleton-table">
-      <h2 className="title is-4">センサー詳細</h2>
+      <div className="sectionHeader">
+        <h2 className="title is-4">
+          <span>🔧</span>
+          センサー詳細
+        </h2>
+      </div>
       <div className="table-container">
-        <table className="table is-striped is-fullwidth">
+        <table className="table is-striped is-hoverable is-fullwidth">
           <thead>
             <tr>
               <th>#</th>

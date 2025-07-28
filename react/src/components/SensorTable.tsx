@@ -219,7 +219,7 @@ export function SensorTable({ sensors }: SensorTableProps) {
                         className="progress mr-3"
                         value={sensor.availability_total}
                         max="100"
-                        style={{ height: '20px', width: '100px', backgroundColor: '#f5f5f5' }}
+                        style={{ height: '20px', width: '100px', backgroundColor: '#f8f8f8' }}
                       >
                         {sensor.availability_total}%
                       </progress>
@@ -234,7 +234,7 @@ export function SensorTable({ sensors }: SensorTableProps) {
                         className="progress mr-3"
                         value={sensor.availability_24h}
                         max="100"
-                        style={{ height: '20px', width: '100px', backgroundColor: '#f5f5f5' }}
+                        style={{ height: '20px', width: '100px', backgroundColor: '#f8f8f8' }}
                       >
                         {sensor.availability_24h}%
                       </progress>

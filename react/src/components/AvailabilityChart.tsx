@@ -134,7 +134,7 @@ function AvailabilityChartComponent({ sensors }: AvailabilityChartProps) {
     },
     layout: {
       padding: {
-        top: 15,
+        top: 20,
       }
     },
     plugins: {
