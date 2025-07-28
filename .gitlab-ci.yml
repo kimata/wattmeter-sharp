@@ -155,12 +155,15 @@ test-playwright:
         - mv wattmeter-config/sharp_device.yaml device.yaml
         - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
 
-        # CI環境用の環境変数を設定してFlaskを起動
-        - export FLASK_ENV=production
-        - export WERKZEUG_RUN_MAIN=true
-        - uv run python ./src/webui.py 2>&1 > flask_log.txt &
+        # 設定ファイルの存在確認
+        - ls -la config.yaml device.yaml || true
+        - ls -la data/ || true
+
+        # Flaskを起動（エラー出力も記録、明示的にポート指定）
+        - uv run python ./src/webui.py -p 5000 > flask_log.txt 2>&1 &
         - FLASK_PID=$!
-        - sleep 3
+        - echo "Flask PID: $FLASK_PID"
+        - sleep 10
 
         - uv run playwright install --with-deps chromium
 
@@ -175,7 +178,11 @@ test-playwright:
         - |
             if [ "$ACCESS_FAILED" = "1" ]; then
                 echo "Failed to access App"
-                docker stop ${CI_JOB_NAME}-${CI_JOB_ID} || true
+                echo "=== Flask log ==="
+                cat flask_log.txt || echo "No flask log found"
+                echo "=== Flask process check ==="
+                ps aux | grep webui.py || true
+                kill $FLASK_PID || true
                 exit 1
             fi
 
