@@ -1,6 +1,12 @@
 import { useRef, useEffect } from 'react'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/ja'
 import type { CommunicationError } from '../types'
 import styles from './CommunicationError.module.css'
+
+dayjs.extend(relativeTime)
+dayjs.locale('ja')
 
 interface CommunicationErrorTableProps {
   errors: CommunicationError[]
@@ -52,6 +58,22 @@ export function CommunicationErrorTable({ errors }: CommunicationErrorTableProps
       notificationRef.current?.classList.remove(styles.show)
     }, 3000)
   }
+
+  const getRelativeTime = (dateString: string) => {
+    const date = dayjs(dateString)
+    const now = dayjs()
+    const diffMinutes = now.diff(date, 'minute')
+
+    if (diffMinutes < 60) {
+      return `(${diffMinutes}分前)`
+    } else if (diffMinutes < 1440) {
+      const hours = Math.floor(diffMinutes / 60)
+      return `(${hours}時間前)`
+    } else {
+      const days = Math.floor(diffMinutes / 1440)
+      return `(${days}日前)`
+    }
+  }
   if (errors.length === 0) {
     return (
       <>
@@ -92,18 +114,21 @@ export function CommunicationErrorTable({ errors }: CommunicationErrorTableProps
           <table className="table is-striped is-hoverable is-fullwidth">
             <thead>
               <tr>
-                <th>日時</th>
-                <th>センサー名</th>
+                <th style={{ textAlign: 'left' }}>日時</th>
+                <th style={{ textAlign: 'left' }}>センサー名</th>
               </tr>
             </thead>
             <tbody>
               {errors.map((error, index) => (
                 <tr key={`${error.sensor_name}-${error.timestamp}-${index}`}>
-                  <td>
-                    <span className="is-family-monospace">{error.datetime}</span>
+                  <td style={{ textAlign: 'left' }}>
+                    {dayjs(error.datetime).format('M/D HH:mm:ss')}
+                    <span className="has-text-grey ml-1">
+                      {getRelativeTime(error.datetime)}
+                    </span>
                   </td>
-                  <td>
-                    <span className="tag is-danger">{error.sensor_name}</span>
+                  <td style={{ textAlign: 'left' }}>
+                    {error.sensor_name}
                   </td>
                 </tr>
               ))}
