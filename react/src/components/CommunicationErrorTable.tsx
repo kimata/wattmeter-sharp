@@ -125,7 +125,7 @@ export function CommunicationErrorTable({ errors }: CommunicationErrorTableProps
       <div className={`section ${styles.errorTableSection}`} id="communication-error-log">
         <div className={styles.sectionHeader}>
           <h2 className="title is-4">
-            <span className={styles.icon}>📋</span>
+            <span className="icon"><i className="fas fa-list"></i></span>
             最新の通信エラーログ（{errors.length}件）
             <i
               className={`fas fa-link ${styles.permalinkIcon}`}

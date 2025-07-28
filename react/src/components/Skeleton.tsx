@@ -30,7 +30,7 @@ export function SkeletonChart() {
     <div className={`section ${styles.chartSection}`} data-testid="skeleton-chart">
       <div className={styles.sectionHeader}>
         <h2 className="title is-4">
-          <span className={styles.icon}>📊</span>
+          <span className="icon"><i className="fas fa-chart-line"></i></span>
           センサー稼働率
         </h2>
       </div>

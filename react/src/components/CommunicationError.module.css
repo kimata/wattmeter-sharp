@@ -15,7 +15,6 @@
 
 .sectionHeader .icon {
     margin-right: 0.5rem;
-    font-size: 1.25rem;
 }
 
 /* パーマリンクアイコン */
@@ -89,10 +88,6 @@
 
     .sectionHeader h2 {
         font-size: 1.25rem;
-    }
-
-    .sectionHeader .icon {
-        font-size: 1rem;
     }
 
     .ml-0-mobile {

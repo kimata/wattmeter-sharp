@@ -175,7 +175,7 @@ export function SensorTable({ sensors }: SensorTableProps) {
       <div className={`section ${styles.errorTableSection}`} id="sensor-details" data-testid="sensor-table">
         <div className={styles.sectionHeader}>
           <h2 className="title is-4">
-            <span className={styles.icon}>🔧</span>
+            <span className="icon"><i className="fas fa-cog"></i></span>
             センサー詳細
             <i
               className={`fas fa-link ${styles.permalinkIcon}`}

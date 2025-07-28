@@ -266,7 +266,7 @@ function AvailabilityChartComponent({ sensors }: AvailabilityChartProps) {
       <div className={`section ${styles.chartSection}`} id="sensor-availability" data-testid="availability-chart">
         <div className={styles.sectionHeader}>
           <h2 className="title is-4">
-            <span className={styles.icon}>📊</span>
+            <span className="icon"><i className="fas fa-chart-line"></i></span>
             センサー稼働率
             <i
               className={`fas fa-link ${styles.permalinkIcon}`}

@@ -185,7 +185,7 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
       <div className={`section ${styles.chartSection}`} id="communication-error-chart">
         <div className={styles.sectionHeader}>
           <h2 className="title is-4">
-            <span className={styles.icon}>📊</span>
+            <span className="icon"><i className="fas fa-chart-bar"></i></span>
             通信エラー発生状況（過去24時間、合計: {histogram.total_errors}件）
             <i
               className={`fas fa-link ${styles.permalinkIcon}`}
