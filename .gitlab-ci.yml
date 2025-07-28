@@ -155,17 +155,8 @@ test-playwright:
         - mv wattmeter-config/sharp_device.yaml device.yaml
         - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
 
-        # 設定ファイルの存在確認
-        - "ls -la config.yaml device.yaml || true"
-        - "ls -la data/ || true"
-
-        # Reactビルド成果物の確認
-        - "ls -la react/dist/ || echo 'react/dist/ not found'"
-
         # Flaskを起動（エラー出力も記録、明示的にポート指定）
         - uv run python ./src/webui.py -p 5000 > flask_log.txt 2>&1 &
-        - "FLASK_PID=$!"
-        - 'echo "Flask PID: $FLASK_PID"'
         - "sleep 10"
 
         - uv run playwright install --with-deps chromium
@@ -181,11 +172,6 @@ test-playwright:
         - |
             if [ "$ACCESS_FAILED" = "1" ]; then
                 echo "Failed to access App"
-                echo "=== Flask log ==="
-                cat flask_log.txt || echo "No flask log found"
-                echo "=== Flask process check ==="
-                ps aux | grep webui.py || true
-                kill $FLASK_PID || true
                 exit 1
             fi
 
