@@ -159,7 +159,12 @@ test-playwright:
         - "ls -la config.yaml device.yaml || true"
         - "ls -la data/ || true"
 
+        # Reactビルド成果物の確認
+        - "ls -la react/dist/ || echo 'react/dist/ not found'"
+
         # Flaskを起動（エラー出力も記録、明示的にポート指定）
+        # CI環境用の環境変数を設定してリローダーを無効化
+        - export WERKZEUG_RUN_MAIN=true
         - uv run python ./src/webui.py -p 5000 > flask_log.txt 2>&1 &
         - "FLASK_PID=$!"
         - 'echo "Flask PID: $FLASK_PID"'
