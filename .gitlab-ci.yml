@@ -156,14 +156,14 @@ test-playwright:
         - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
 
         # 設定ファイルの存在確認
-        - ls -la config.yaml device.yaml || true
-        - ls -la data/ || true
+        - "ls -la config.yaml device.yaml || true"
+        - "ls -la data/ || true"
 
         # Flaskを起動（エラー出力も記録、明示的にポート指定）
         - uv run python ./src/webui.py -p 5000 > flask_log.txt 2>&1 &
-        - FLASK_PID=$!
-        - echo "Flask PID: $FLASK_PID"
-        - sleep 10
+        - "FLASK_PID=$!"
+        - 'echo "Flask PID: $FLASK_PID"'
+        - "sleep 10"
 
         - uv run playwright install --with-deps chromium
 
