@@ -155,7 +155,12 @@ test-playwright:
         - mv wattmeter-config/sharp_device.yaml device.yaml
         - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
 
+        # CI環境用の環境変数を設定してFlaskを起動
+        - export FLASK_ENV=production
+        - export WERKZEUG_RUN_MAIN=true
         - uv run python ./src/webui.py 2>&1 > flask_log.txt &
+        - FLASK_PID=$!
+        - sleep 3
 
         - uv run playwright install --with-deps chromium
 
