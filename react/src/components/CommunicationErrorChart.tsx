@@ -128,6 +128,9 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
     },
     scales: {
       x: {
+        // バー間隔を調整
+        categoryPercentage: 1.0,
+        barPercentage: 1.0,
         title: {
           display: true,
           text: '時間帯',
