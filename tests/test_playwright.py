@@ -30,7 +30,7 @@ def wait_for_server_ready(host, port):
             if res.ok:
                 logging.info("サーバが %.1f 秒後に起動しました。", time.time() - start_time)
                 # NOTE: ページのロードに時間がかかるので、少し待つ
-                time.sleep(10)
+                time.sleep(15)
                 return
         except Exception:  # noqa: S110
             pass
