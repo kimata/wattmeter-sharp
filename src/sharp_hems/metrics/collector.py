@@ -7,6 +7,8 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+import my_lib.time
+
 
 class MetricsCollector:
     """センサーメトリクス収集クラス。"""
@@ -278,11 +280,12 @@ class MetricsCollector:
                 past_slots = [current_slot - i for i in range(1, 6)]  # [n-1, n-2, n-3, n-4, n-5]
 
                 placeholders = ",".join("?" * len(past_slots))
-                cursor = conn.execute(
-                    f"""
+                query = f"""
                     SELECT MAX(time_slot) FROM sensor_heartbeats
                     WHERE sensor_name = ? AND time_slot IN ({placeholders})
-                    """,
+                    """  # noqa: S608
+                cursor = conn.execute(
+                    query,
                     (sensor_name, *past_slots),
                 )
 
@@ -301,11 +304,12 @@ class MetricsCollector:
 
                 # 既に記録済みのエラーを除外
                 existing_placeholders = ",".join("?" * len(failed_slots))
-                cursor = conn.execute(
-                    f"""
+                query = f"""
                     SELECT time_slot FROM communication_errors
                     WHERE sensor_name = ? AND time_slot IN ({existing_placeholders})
-                    """,
+                    """  # noqa: S608
+                cursor = conn.execute(
+                    query,
                     (sensor_name, *failed_slots),
                 )
 
@@ -374,8 +378,13 @@ class MetricsCollector:
             for row in cursor.fetchall():
                 error_timestamp = row[0]
 
-                # エラー発生時刻を今日の0時からの経過秒数に変換
-                seconds_from_midnight = error_timestamp % 86400
+                # UTCタイムスタンプを日本時間に変換
+                utc_datetime = datetime.datetime.fromtimestamp(error_timestamp, datetime.timezone.utc)
+                jst_datetime = utc_datetime.astimezone(my_lib.time.get_zoneinfo())
+
+                # 日本時間での今日の0時からの経過秒数に変換
+                midnight_jst = jst_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
+                seconds_from_midnight = int((jst_datetime - midnight_jst).total_seconds())
 
                 # 30分刻みのbin（0-47）に分類
                 bin_index = min(int(seconds_from_midnight // 1800), 47)  # 1800秒 = 30分

@@ -1,3 +1,5 @@
+import styles from './CommunicationError.module.css'
+
 interface SkeletonProps {
   className?: string
   height?: string
@@ -25,15 +27,15 @@ export function Skeleton({ className = '', height = '20px', width = '100%' }: Sk
 
 export function SkeletonChart() {
   return (
-    <div className="section" data-testid="skeleton-chart">
-      <div className="sectionHeader">
+    <div className={`section ${styles.chartSection}`} data-testid="skeleton-chart">
+      <div className={styles.sectionHeader}>
         <h2 className="title is-4">
-          <span>📊</span>
-          <Skeleton height="24px" width="200px" className="ml-2" />
+          <span className={styles.icon}>📊</span>
+          センサー稼働率
         </h2>
       </div>
-      <div className="table-container">
-        <div className="chart-container" style={{ position: 'relative', height: '350px', margin: '0.5rem 0' }}>
+      <div className="box">
+        <div style={{ position: 'relative', height: '400px', width: '100%' }}>
           <div className="is-flex is-justify-content-space-between is-align-items-end" style={{ height: '100%' }}>
             {Array.from({ length: 6 }, (_, i) => (
               <div key={i} className="is-flex is-flex-direction-column is-align-items-center">
@@ -54,10 +56,10 @@ export function SkeletonChart() {
 
 export function SkeletonTable() {
   return (
-    <div className="section" data-testid="skeleton-table">
-      <div className="sectionHeader">
+    <div className={`section ${styles.errorTableSection}`} data-testid="skeleton-table">
+      <div className={styles.sectionHeader}>
         <h2 className="title is-4">
-          <span>🔧</span>
+          <span className={styles.icon}>🔧</span>
           センサー詳細
         </h2>
       </div>

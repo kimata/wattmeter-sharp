@@ -45,21 +45,45 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
     const currentUrl = window.location.origin + window.location.pathname
     const permalink = currentUrl + '#' + elementId
 
-    navigator.clipboard.writeText(permalink).then(() => {
-      showCopyNotification('パーマリンクをコピーしました')
-      window.history.pushState(null, '', '#' + elementId)
-    }).catch(() => {
-      // フォールバック
+    // Clipboard APIが利用可能かチェック
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(permalink).then(() => {
+        showCopyNotification('パーマリンクをコピーしました')
+        window.history.pushState(null, '', '#' + elementId)
+      }).catch(() => {
+        // Clipboard APIが失敗した場合のフォールバック
+        fallbackCopyToClipboard(permalink, elementId)
+      })
+    } else {
+      // Clipboard APIが利用できない場合のフォールバック
+      fallbackCopyToClipboard(permalink, elementId)
+    }
+  }
+
+  const fallbackCopyToClipboard = (text: string, elementId: string) => {
+    try {
       const textArea = document.createElement('textarea')
-      textArea.value = permalink
+      textArea.value = text
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
       document.body.appendChild(textArea)
+      textArea.focus()
       textArea.select()
-      document.execCommand('copy')
+      const successful = document.execCommand('copy')
       document.body.removeChild(textArea)
 
-      showCopyNotification('パーマリンクをコピーしました')
+      if (successful) {
+        showCopyNotification('パーマリンクをコピーしました')
+      } else {
+        showCopyNotification('コピーに失敗しました')
+      }
       window.history.pushState(null, '', '#' + elementId)
-    })
+    } catch (err) {
+      console.error('コピーに失敗しました:', err)
+      showCopyNotification('コピーに失敗しました')
+      window.history.pushState(null, '', '#' + elementId)
+    }
   }
 
   const showCopyNotification = (message: string) => {
@@ -87,9 +111,16 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: 'top' as const,
+        labels: {
+          font: {
+            family: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif',
+            size: 14
+          }
+        }
       },
       title: {
         display: false,
@@ -100,9 +131,17 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
         title: {
           display: true,
           text: '時間帯',
+          font: {
+            family: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif',
+            size: 14
+          }
         },
         ticks: {
           maxTicksLimit: 12, // 2時間刻みで表示
+          font: {
+            family: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif',
+            size: 14
+          },
           callback: function(value: string | number) {
             const index = Number(value)
             if (index % 4 === 0) {
@@ -125,9 +164,17 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
         title: {
           display: true,
           text: 'エラー件数',
+          font: {
+            family: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif',
+            size: 14
+          }
         },
         ticks: {
           stepSize: 1,
+          font: {
+            family: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif',
+            size: 14
+          }
         },
       },
     },
@@ -147,8 +194,8 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
             />
           </h2>
         </div>
-        <div className="table-container">
-          <div className="chart-container" style={{ position: 'relative', height: '350px', margin: '0.5rem 0' }}>
+        <div className="box">
+          <div style={{ position: 'relative', height: '400px', width: '100%' }}>
             <Bar data={data} options={options} />
           </div>
         </div>

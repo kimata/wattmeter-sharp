@@ -31,21 +31,45 @@ export function CommunicationErrorTable({ errors }: CommunicationErrorTableProps
     const currentUrl = window.location.origin + window.location.pathname
     const permalink = currentUrl + '#' + elementId
 
-    navigator.clipboard.writeText(permalink).then(() => {
-      showCopyNotification('パーマリンクをコピーしました')
-      window.history.pushState(null, '', '#' + elementId)
-    }).catch(() => {
-      // フォールバック
+    // Clipboard APIが利用可能かチェック
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(permalink).then(() => {
+        showCopyNotification('パーマリンクをコピーしました')
+        window.history.pushState(null, '', '#' + elementId)
+      }).catch(() => {
+        // Clipboard APIが失敗した場合のフォールバック
+        fallbackCopyToClipboard(permalink, elementId)
+      })
+    } else {
+      // Clipboard APIが利用できない場合のフォールバック
+      fallbackCopyToClipboard(permalink, elementId)
+    }
+  }
+
+  const fallbackCopyToClipboard = (text: string, elementId: string) => {
+    try {
       const textArea = document.createElement('textarea')
-      textArea.value = permalink
+      textArea.value = text
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
       document.body.appendChild(textArea)
+      textArea.focus()
       textArea.select()
-      document.execCommand('copy')
+      const successful = document.execCommand('copy')
       document.body.removeChild(textArea)
 
-      showCopyNotification('パーマリンクをコピーしました')
+      if (successful) {
+        showCopyNotification('パーマリンクをコピーしました')
+      } else {
+        showCopyNotification('コピーに失敗しました')
+      }
       window.history.pushState(null, '', '#' + elementId)
-    })
+    } catch (err) {
+      console.error('コピーに失敗しました:', err)
+      showCopyNotification('コピーに失敗しました')
+      window.history.pushState(null, '', '#' + elementId)
+    }
   }
 
   const showCopyNotification = (message: string) => {

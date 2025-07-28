@@ -76,17 +76,9 @@
     overflow-x: auto;
 }
 
-/* 進捗バーのスタイル */
-.progress {
-    background-color: #f8f8f8 !important;
-}
-
-.progress::-webkit-progress-value {
-    background-color: #e8e8e8 !important;
-}
-
-.progress::-moz-progress-bar {
-    background-color: #e8e8e8 !important;
+/* 最終受信列のレスポンシブデザイン */
+.ml-0-mobile {
+    margin-left: 0.25rem;
 }
 
 @media (max-width: 768px) {
@@ -101,5 +93,9 @@
 
     .sectionHeader .icon {
         font-size: 1rem;
+    }
+
+    .ml-0-mobile {
+        margin-left: 0 !important;
     }
 }

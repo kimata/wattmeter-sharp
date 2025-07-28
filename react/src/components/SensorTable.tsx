@@ -37,21 +37,45 @@ export function SensorTable({ sensors }: SensorTableProps) {
     const currentUrl = window.location.origin + window.location.pathname
     const permalink = currentUrl + '#' + elementId
 
-    navigator.clipboard.writeText(permalink).then(() => {
-      showCopyNotification('パーマリンクをコピーしました')
-      window.history.pushState(null, '', '#' + elementId)
-    }).catch(() => {
-      // フォールバック
+    // Clipboard APIが利用可能かチェック
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      navigator.clipboard.writeText(permalink).then(() => {
+        showCopyNotification('パーマリンクをコピーしました')
+        window.history.pushState(null, '', '#' + elementId)
+      }).catch(() => {
+        // Clipboard APIが失敗した場合のフォールバック
+        fallbackCopyToClipboard(permalink, elementId)
+      })
+    } else {
+      // Clipboard APIが利用できない場合のフォールバック
+      fallbackCopyToClipboard(permalink, elementId)
+    }
+  }
+
+  const fallbackCopyToClipboard = (text: string, elementId: string) => {
+    try {
       const textArea = document.createElement('textarea')
-      textArea.value = permalink
+      textArea.value = text
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
       document.body.appendChild(textArea)
+      textArea.focus()
       textArea.select()
-      document.execCommand('copy')
+      const successful = document.execCommand('copy')
       document.body.removeChild(textArea)
 
-      showCopyNotification('パーマリンクをコピーしました')
+      if (successful) {
+        showCopyNotification('パーマリンクをコピーしました')
+      } else {
+        showCopyNotification('コピーに失敗しました')
+      }
       window.history.pushState(null, '', '#' + elementId)
-    })
+    } catch (err) {
+      console.error('コピーに失敗しました:', err)
+      showCopyNotification('コピーに失敗しました')
+      window.history.pushState(null, '', '#' + elementId)
+    }
   }
 
   const showCopyNotification = (message: string) => {
@@ -212,14 +236,14 @@ export function SensorTable({ sensors }: SensorTableProps) {
               {sortedSensors.map((sensor, index) => (
                 <tr key={`${sensor.name}-${index}`}>
                   <td>{sortKey === 'index' ? sensors.indexOf(sensor) + 1 : index + 1}</td>
-                  <td>{sensor.name}</td>
+                  <td style={{ textAlign: 'left' }}>{sensor.name}</td>
                   <td>
                     <div className="is-flex is-align-items-center">
                       <progress
                         className="progress mr-3"
                         value={sensor.availability_total}
                         max="100"
-                        style={{ height: '20px', width: '100px', backgroundColor: '#f8f8f8' }}
+                        style={{ height: '20px', width: '100px' }}
                       >
                         {sensor.availability_total}%
                       </progress>
@@ -234,7 +258,7 @@ export function SensorTable({ sensors }: SensorTableProps) {
                         className="progress mr-3"
                         value={sensor.availability_24h}
                         max="100"
-                        style={{ height: '20px', width: '100px', backgroundColor: '#f8f8f8' }}
+                        style={{ height: '20px', width: '100px' }}
                       >
                         {sensor.availability_24h}%
                       </progress>
@@ -255,8 +279,9 @@ export function SensorTable({ sensors }: SensorTableProps) {
                   <td>
                     {sensor.last_received ? (
                       <>
-                        {dayjs(sensor.last_received).format('M/D HH:mm:ss')}
-                        <span className="has-text-grey ml-1">
+                        <span style={{ whiteSpace: 'nowrap' }}>{dayjs(sensor.last_received).format('M/D HH:mm:ss')}</span>
+                        <br className="is-hidden-desktop" />
+                        <span className="has-text-grey ml-1 ml-0-mobile" style={{ whiteSpace: 'nowrap' }}>
                           {getRelativeTime(sensor.last_received)}
                         </span>
                       </>
