@@ -142,7 +142,7 @@ test-walk-through:
         reports:
             junit: tests/evidence/junit-report.xml
 
-test-webapp:
+test-playwright:
     stage: test
 
     needs:
@@ -150,35 +150,23 @@ test-webapp:
         - test-prepare
 
     script:
-        # NOTE: テストに失敗するとテスト用のコンテナが残るので削除する
-        - >
-            docker ps  --filter "label=job=${CI_JOB_NAME}" | grep hours |
-            cut -d " " -f1 |
-            while read id; do docker stop -t 5 $id; done || true
-        # NOTE: 「-d」をつけると一週間前のデータを取得するので、センサーデータがしばらく欠損していた場合、
-        # センサーが復活しても一週間程度はこのテストは失敗するので注意
-        - >
-            docker run --rm --detach=true --tty=true
-            --name ${CI_JOB_NAME}-${CI_JOB_ID} --label job=${CI_JOB_NAME}
-            --publish :5000
-            ${CI_REGISTRY_IMAGE}:${TAG} ./src/webui.py
+        - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.green-rabbit.net/kimata/wattmeter-config.git
+        - mv wattmeter-config/sharp_config.yaml config.yaml
+        - mv wattmeter-config/sharp_device.yaml device.yaml
+        - mv wattmeter-config/sharp_dev_id.dat data/dev_id.dat
 
-        - docker ps | grep ${CI_JOB_NAME}-${CI_JOB_ID}
+        - uv run python ./src/webui.py 2>&1 > flask_log.txt &
 
         - uv run playwright install --with-deps chromium
 
         - >
-            APP_PORT=$(docker port "${CI_JOB_NAME}-${CI_JOB_ID}" 5000 | cut -d: -f2)
-        - >
-            DOCKER_GATEWAY=$(docker network inspect bridge --format="{{range .IPAM.Config}}{{.Gateway}}{{end}}")
-        - >
-            APP_URL="http://${DOCKER_GATEWAY}:${APP_PORT}/panel/"
+            APP_URL="http://127.0.0.1:5000/wattmeter-sharp/"
         - >
             echo "APP_URL: ${APP_URL}"
         - >
             timeout 60 bash -c "until curl --fail --connect-timeout 10 --max-time 15 \"${APP_URL}\" > /dev/null 2>&1;
             do echo 'Retrying in 5 seconds...'; sleep 5; done" || ACCESS_FAILED=1
-        - docker logs ${CI_JOB_NAME}-${CI_JOB_ID} > flask_log.txt
+
         - |
             if [ "$ACCESS_FAILED" = "1" ]; then
                 echo "Failed to access App"
@@ -186,16 +174,9 @@ test-webapp:
                 exit 1
             fi
 
-        - docker logs ${CI_JOB_NAME}-${CI_JOB_ID} > flask_log.txt
-
         - >
             uv run pytest tests/test_playwright.py
-            --host ${DOCKER_GATEWAY} --port ${APP_PORT}
             --junit-xml=tests/evidence/playwright-junit.xml
-
-        - docker logs ${CI_JOB_NAME}-${CI_JOB_ID} > flask_log.txt
-        - docker stop ${CI_JOB_NAME}-${CI_JOB_ID}
-
     artifacts:
         when: always
         paths:
