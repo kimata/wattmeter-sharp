@@ -105,6 +105,9 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
         backgroundColor: 'rgba(220, 53, 69, 0.6)',
         borderColor: 'rgba(220, 53, 69, 1)',
         borderWidth: 1,
+        // バー間隔を完全に削除
+        categoryPercentage: 1.0,
+        barPercentage: 1.0,
       },
     ],
   }
@@ -128,9 +131,11 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
     },
     scales: {
       x: {
-        // バー間隔を調整
+        // バー間隔を完全に削除
         categoryPercentage: 1.0,
         barPercentage: 1.0,
+        // グリッド線のオフセットを調整
+        offset: false,
         title: {
           display: true,
           text: '時間帯',
