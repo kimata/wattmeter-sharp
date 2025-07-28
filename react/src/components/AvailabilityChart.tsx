@@ -132,6 +132,11 @@ function AvailabilityChartComponent({ sensors }: AvailabilityChartProps) {
       mode: 'index' as const,
       intersect: false,
     },
+    layout: {
+      padding: {
+        top: 15,
+      }
+    },
     plugins: {
       legend: {
         display: true,
@@ -180,8 +185,10 @@ function AvailabilityChartComponent({ sensors }: AvailabilityChartProps) {
             />
           </h2>
         </div>
-        <div className="chart-container" style={{ position: 'relative', height: '350px', margin: '0.5rem 0' }}>
-          <Chart type="bar" data={chartData} options={chartOptions} />
+        <div className="table-container">
+          <div className="chart-container" style={{ position: 'relative', height: '350px', margin: '0.5rem 0' }}>
+            <Chart type="bar" data={chartData} options={chartOptions} />
+          </div>
         </div>
       </div>
       <div ref={notificationRef} className={styles.copyNotification}></div>

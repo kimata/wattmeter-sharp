@@ -216,10 +216,10 @@ export function SensorTable({ sensors }: SensorTableProps) {
                   <td>
                     <div className="is-flex is-align-items-center">
                       <progress
-                        className="progress is-info mr-3"
+                        className="progress mr-3"
                         value={sensor.availability_total}
                         max="100"
-                        style={{ height: '20px', width: '100px' }}
+                        style={{ height: '20px', width: '100px', backgroundColor: '#f5f5f5' }}
                       >
                         {sensor.availability_total}%
                       </progress>
@@ -231,10 +231,10 @@ export function SensorTable({ sensors }: SensorTableProps) {
                   <td>
                     <div className="is-flex is-align-items-center">
                       <progress
-                        className="progress is-info mr-3"
+                        className="progress mr-3"
                         value={sensor.availability_24h}
                         max="100"
-                        style={{ height: '20px', width: '100px' }}
+                        style={{ height: '20px', width: '100px', backgroundColor: '#f5f5f5' }}
                       >
                         {sensor.availability_24h}%
                       </progress>

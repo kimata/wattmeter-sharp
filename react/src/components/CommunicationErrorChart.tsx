@@ -99,13 +99,24 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
       x: {
         title: {
           display: true,
-          text: '時刻（30分刻み）',
+          text: '時間帯',
         },
         ticks: {
           maxTicksLimit: 12, // 2時間刻みで表示
           callback: function(value: string | number) {
             const index = Number(value)
-            return index % 4 === 0 ? histogram.bin_labels[index] : ''
+            if (index % 4 === 0) {
+              const label = histogram.bin_labels[index]
+              if (label) {
+                // "00:00", "01:30" のような形式を "0時", "1時" に変換
+                const hourMatch = label.match(/^(\d{1,2}):/);
+                if (hourMatch) {
+                  return `${parseInt(hourMatch[1])}時`
+                }
+              }
+              return label
+            }
+            return ''
           }
         }
       },
@@ -136,8 +147,10 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
             />
           </h2>
         </div>
-        <div className="chart-container" style={{ position: 'relative', height: '350px', margin: '0.5rem 0' }}>
-          <Bar data={data} options={options} />
+        <div className="table-container">
+          <div className="chart-container" style={{ position: 'relative', height: '350px', margin: '0.5rem 0' }}>
+            <Bar data={data} options={options} />
+          </div>
         </div>
       </div>
       <div ref={notificationRef} className={styles.copyNotification}></div>
