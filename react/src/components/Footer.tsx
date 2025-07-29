@@ -20,7 +20,7 @@ export function Footer({ updateTime }: FooterProps) {
   return (
     <div className="is-pulled-right has-text-right p-2 mt-4" data-testid="footer">
       <div className="is-size-6">
-        <p className="has-text-grey mb-0">
+        <p className="has-text-grey mb-0 is-size-7">
           更新日時: {updateTime}
         </p>
         <p className="has-text-grey mb-0 is-size-7">
