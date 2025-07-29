@@ -23,16 +23,16 @@ export function Footer({ updateTime }: FooterProps) {
         <p className="has-text-grey mb-0">
           更新日時: {updateTime}
         </p>
-        <p className="has-text-grey mb-0">
+        <p className="has-text-grey mb-0 is-size-7">
           イメージビルド: {getImageBuildDate()}
         </p>
-        <p className="has-text-grey mb-0">
+        <p className="has-text-grey mb-0 is-size-7">
           React ビルド: {buildDate.format('YYYY年MM月DD日 HH:mm:ss')} [{buildDate.fromNow()}]
         </p>
-        <p className="has-text-grey mb-0">
+        <p className="has-text-grey mb-0 is-size-7">
           React バージョン: {reactVersion}
         </p>
-        <p className="is-size-3">
+        <p className="is-size-2">
           <a
             href="https://github.com/kimata/wattmeter-sharp"
             className="has-text-grey-light"
