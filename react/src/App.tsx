@@ -42,7 +42,7 @@ function App() {
         <section className="section" style={{ padding: '1rem 0.5rem' }}>
           <div className="container" style={{ maxWidth: '100%', padding: 0 }}>
             <h1 className="title is-2 has-text-centered" data-testid="app-title">
-              <span className="icon is-large"><i className="fas fa-chart-line"></i></span>
+              <span className="icon is-large" style={{ marginRight: '0.5em' }}><i className="fas fa-chart-line"></i></span>
               SHARP HEMS センサー稼働状態
             </h1>
 

@@ -105,8 +105,8 @@ export function SensorTable({ sensors }: SensorTableProps) {
   }
 
   const getStatusValue = (sensor: SensorData) => {
-    if (sensor.availability_total >= 90) return 3 // 正常
-    if (sensor.availability_total >= 70) return 2 // 警告
+    if (sensor.availability_24h >= 90) return 3 // 正常
+    if (sensor.availability_24h >= 70) return 2 // 警告
     return 1 // 異常
   }
 
@@ -291,12 +291,12 @@ export function SensorTable({ sensors }: SensorTableProps) {
                   </td>
                   <td>
                     <span className={`tag ${
-                      sensor.availability_total >= 90 ? 'is-success' :
-                      sensor.availability_total >= 70 ? 'is-warning' :
+                      sensor.availability_24h >= 90 ? 'is-success' :
+                      sensor.availability_24h >= 70 ? 'is-warning' :
                       'is-danger'
                     }`}>
-                      {sensor.availability_total >= 90 ? '正常' :
-                       sensor.availability_total >= 70 ? '警告' :
+                      {sensor.availability_24h >= 90 ? '正常' :
+                       sensor.availability_24h >= 70 ? '警告' :
                        '異常'}
                     </span>
                   </td>
