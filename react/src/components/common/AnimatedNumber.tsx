@@ -13,11 +13,12 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   value,
   decimals = 1,
   className = '',
-  duration = 30.0,
+  duration = 3.0,
   useComma = false
 }) => {
   const [displayValue, setDisplayValue] = useState(value);
-  const spring = useSpring(value, {
+  const [isInitialized, setIsInitialized] = useState(false);
+  const spring = useSpring(isInitialized ? value : value, {
     duration: duration * 1000,
     bounce: 0.1
   });
@@ -34,8 +35,13 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   });
 
   useEffect(() => {
-    spring.set(value);
-  }, [value, spring]);
+    if (!isInitialized) {
+      spring.jump(value);
+      setIsInitialized(true);
+    } else {
+      spring.set(value);
+    }
+  }, [value, spring, isInitialized]);
 
   useEffect(() => {
     const unsubscribe = display.on('change', (latest) => {
