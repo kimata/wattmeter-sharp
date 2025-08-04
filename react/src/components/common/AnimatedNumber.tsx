@@ -16,8 +16,8 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   duration = 3.0,
   useComma = false
 }) => {
-  const [displayValue, setDisplayValue] = useState(value);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [previousValue, setPreviousValue] = useState(value);
   const spring = useSpring(isInitialized ? value : value, {
     duration: duration * 1000,
     bounce: 0.1
@@ -41,27 +41,20 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
     } else {
       spring.set(value);
     }
+    setPreviousValue(value);
   }, [value, spring, isInitialized]);
-
-  useEffect(() => {
-    const unsubscribe = display.on('change', (latest) => {
-      const numericValue = useComma ? parseFloat(latest.replace(/,/g, '')) : parseFloat(latest);
-      setDisplayValue(numericValue);
-    });
-    return unsubscribe;
-  }, [display, useComma]);
 
   return (
     <motion.span
       className={className}
       initial={{ scale: 1, y: 0 }}
       animate={{
-        scale: value !== displayValue ? [1, 1.05, 1] : 1,
-        y: value !== displayValue ? [0, -8, 0] : 0
+        scale: value !== previousValue ? [1, 1.05, 1] : 1,
+        y: value !== previousValue ? [0, -8, 0] : 0
       }}
       transition={{ duration: 0.3 }}
     >
-      {display.get()}
+      {display}
     </motion.span>
   );
 };
