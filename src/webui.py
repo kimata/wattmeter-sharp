@@ -36,7 +36,7 @@ def term():
 def sig_handler(num, frame):  # noqa: ARG001
     logging.warning("receive signal %d", num)
 
-    if num == signal.SIGTERM:
+    if num in (signal.SIGTERM, signal.SIGINT):
         term()
 
 

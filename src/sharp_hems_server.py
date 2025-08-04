@@ -26,7 +26,7 @@ SCHEMA_CONFIG = "config.schema"
 def sig_handler(num, frame):  # noqa: ARG001
     logging.warning("Receive signal %d", num)
 
-    if num == signal.SIGTERM:
+    if num in (signal.SIGTERM, signal.SIGINT):
         sharp_hems.serial_pubsub.stop_server()
 
 
