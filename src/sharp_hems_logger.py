@@ -17,6 +17,7 @@ Options:
 import logging
 import os
 import pathlib
+import sys
 
 import my_lib.fluentd_util
 import my_lib.footprint
@@ -73,7 +74,7 @@ def process_packet(handle, header, payload):
             logging.info(my_lib.pretty.format(data))
             handle["packet"]["count"] += 1
             if (handle["packet"]["max"] != 0) and (handle["packet"]["count"] >= handle["packet"]["max"]):
-                os._exit(0)
+                sys.exit(0)
     else:
 
         def on_data_received(data):
