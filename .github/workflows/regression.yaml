@@ -62,7 +62,7 @@ jobs:
               run: uv run pytest --numprocesses=auto --junit-xml=tests/evidence/junit.xml tests/test_basic.py
 
             - name: Publish Test Results
-              uses: dorny/test-reporter@v1
+              uses: dorny/test-reporter@v2
               if: success() || failure()
               with:
                   name: test results
