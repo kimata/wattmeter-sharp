@@ -41,6 +41,9 @@ class MockZMQSocket:
     def connect(self, address):
         """接続のモック（何もしない）"""
 
+    def setsockopt(self, option, value):
+        """オプション設定のモック（何もしない）"""
+
     def setsockopt_string(self, option, value):
         """オプション設定のモック（何もしない）"""
 
