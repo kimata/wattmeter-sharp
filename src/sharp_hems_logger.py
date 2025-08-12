@@ -121,6 +121,13 @@ def cleanup():
         except Exception:
             logging.exception("Failed to close Fluentd sender")
 
+    # ファイルシステムを同期
+    try:
+        os.sync()
+        logging.info("File system synced")
+    except Exception:
+        logging.exception("Failed to sync filesystem")
+
     logging.info("Cleanup completed")
 
 
