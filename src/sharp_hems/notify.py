@@ -45,6 +45,6 @@ if __name__ == "__main__":
     config = my_lib.config.load(config_file)
 
     try:
-        raise RuntimeError("ERROR")  # noqa: TRY301, EM101
+        raise RuntimeError("ERROR")
     except Exception:
         error(config)
