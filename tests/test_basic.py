@@ -58,7 +58,7 @@ def load_packet_dump(dump_file_path="tests/data/packet.dump"):
     """
     dump_path = pathlib.Path(dump_file_path)
     if not dump_path.exists():
-        raise FileNotFoundError(f"packet.dump file not found: {dump_file_path}")  # noqa: TRY003, EM102
+        raise FileNotFoundError(f"packet.dump file not found: {dump_file_path}")
 
     with dump_path.open("rb") as f:
         return pickle.load(f)  # noqa: S301

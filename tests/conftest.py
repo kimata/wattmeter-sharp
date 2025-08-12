@@ -1,10 +1,24 @@
 #!/usr/bin/env python3
+import logging
+import os
+import pathlib
+import subprocess
+import sys
+import time
+
 import pytest
+import requests
 
 
 def pytest_addoption(parser):
     parser.addoption("--host", default="127.0.0.1")
     parser.addoption("--port", default="5000")
+    parser.addoption(
+        "--start-server",
+        action="store_true",
+        default=False,
+        help="Start the web server automatically for Playwright tests",
+    )
 
 
 @pytest.fixture
@@ -15,6 +29,61 @@ def host(request):
 @pytest.fixture
 def port(request):
     return request.config.getoption("--port")
+
+
+@pytest.fixture(scope="session")
+def webserver(request):
+    """Start the web server for Playwright tests if --start-server option is provided."""
+    if not request.config.getoption("--start-server"):
+        yield None
+        return
+
+    host = request.config.getoption("--host")
+    port = request.config.getoption("--port")
+
+    # Change to project root directory
+    project_root = pathlib.Path(__file__).parent.parent
+    os.chdir(project_root)
+
+    # Start the server process
+    server_process = subprocess.Popen(  # noqa: S603
+        [sys.executable, "src/webui.py", "-p", str(port)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+
+    # Wait for server to start
+    app_url = f"http://{host}:{port}/wattmeter-sharp/"
+    timeout_sec = 60
+    start_time = time.time()
+
+    while time.time() - start_time < timeout_sec:
+        try:
+            response = requests.get(app_url, timeout=5)
+            if response.ok:
+                logging.info("Server started successfully at %s", app_url)
+                break
+        except requests.exceptions.RequestException:
+            pass
+        time.sleep(2)
+    else:
+        # Server failed to start, terminate process and get logs
+        server_process.terminate()
+        stdout, stderr = server_process.communicate(timeout=5)
+        raise RuntimeError(
+            f"Server failed to start within {timeout_sec} seconds.\nStdout: {stdout}\nStderr: {stderr}"
+        )
+
+    yield server_process
+
+    # Cleanup: terminate the server process
+    server_process.terminate()
+    try:
+        server_process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        server_process.kill()
+        server_process.wait()
 
 
 @pytest.fixture

@@ -11,8 +11,11 @@ APP_URL_TMPL = "http://{host}:{port}/wattmeter-sharp/"
 
 
 @pytest.fixture(autouse=True)
-def _page_init(page, host, port):
-    wait_for_server_ready(host, port)
+def _page_init(page, host, port, webserver):
+    # If webserver fixture is used, it will already have started the server
+    # Otherwise, wait for an externally started server
+    if webserver is None:
+        wait_for_server_ready(host, port)
 
     time.sleep(3)
 
@@ -36,7 +39,7 @@ def wait_for_server_ready(host, port):
             pass
         time.sleep(2)
 
-    raise RuntimeError(f"サーバーが {TIMEOUT_SEC}秒以内に起動しませんでした。")  # noqa: TRY003, EM102
+    raise RuntimeError(f"サーバーが {TIMEOUT_SEC}秒以内に起動しませんでした。")
 
 
 def app_url(host, port):
