@@ -17,7 +17,7 @@ def _page_init(page, host, port, webserver):
     if webserver is None:
         wait_for_server_ready(host, port)
 
-    time.sleep(3)
+    time.sleep(1)
 
     page.on("console", lambda msg: print(msg.text))  # noqa: T201
     page.set_viewport_size({"width": 2400, "height": 1600})
@@ -33,7 +33,7 @@ def wait_for_server_ready(host, port):
             if res.ok:
                 logging.info("サーバが %.1f 秒後に起動しました。", time.time() - start_time)
                 # NOTE: ページのロードに時間がかかるので、少し待つ
-                time.sleep(15)
+                time.sleep(5)
                 return
         except Exception:  # noqa: S110
             pass
@@ -49,7 +49,7 @@ def app_url(host, port):
 ######################################################################
 def test_sensor_monitoring_app(page, host, port):
     """センサー監視アプリの基本機能をテストします。"""
-    page.goto(app_url(host, port))
+    page.goto(app_url(host, port), wait_until="domcontentloaded")
 
     # ページタイトルとメイン要素の確認
     expect(page.get_by_test_id("app-title")).to_have_text("SHARP HEMS センサー稼働状態")
@@ -75,7 +75,7 @@ def test_sensor_monitoring_app(page, host, port):
 
 def test_sensor_table_columns(page, host, port):
     """センサーテーブルの列構成をテストします。"""
-    page.goto(app_url(host, port))
+    page.goto(app_url(host, port), wait_until="domcontentloaded")
 
     # テーブルヘッダーの確認
     table = page.get_by_test_id("sensors-table")
@@ -93,7 +93,7 @@ def test_sensor_table_columns(page, host, port):
 
 def test_sensor_table_sorting(page, host, port):
     """センサーテーブルのソート機能をテストします。"""
-    page.goto(app_url(host, port))
+    page.goto(app_url(host, port), wait_until="domcontentloaded")
 
     table = page.get_by_test_id("sensors-table")
 
@@ -111,7 +111,7 @@ def test_sensor_table_sorting(page, host, port):
 
 def test_sensor_table_data_format(page, host, port):
     """センサーテーブルのデータ形式をテストします。"""
-    page.goto(app_url(host, port))
+    page.goto(app_url(host, port), wait_until="domcontentloaded")
 
     table = page.get_by_test_id("sensors-table")
 
@@ -164,7 +164,7 @@ def test_error_handling(page, host, port):
 
 def test_responsive_design(page, host, port):
     """レスポンシブデザインをテストします。"""
-    page.goto(app_url(host, port))
+    page.goto(app_url(host, port), wait_until="domcontentloaded")
 
     # デスクトップサイズ
     page.set_viewport_size({"width": 1920, "height": 1080})
