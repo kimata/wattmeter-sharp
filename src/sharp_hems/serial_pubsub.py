@@ -24,7 +24,7 @@ import zmq
 
 CH = "serial"
 SER_BAUD = 115200
-SER_TIMEOUT = 10
+SER_TIMEOUT = 5
 
 should_terminate = threading.Event()
 
