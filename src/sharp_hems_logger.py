@@ -79,7 +79,8 @@ def process_packet(handle, header, payload):
             logging.info(my_lib.pretty.format(data))
             handle["packet"]["count"] += 1
             if (handle["packet"]["max"] != 0) and (handle["packet"]["count"] >= handle["packet"]["max"]):
-                sys.exit(0)
+                # NOTE: テスト用で、お作法よく抜けるのは大変なので、強制終了する
+                os._exit(0)
     else:
 
         def on_data_received(data):
@@ -143,7 +144,7 @@ def sig_handler(num, frame):  # noqa: ARG001
 def start(handle):
     try:
         sharp_hems.serial_pubsub.start_client(server_host, server_port, handle, process_packet)
-    except:
+    except Exception:
         sharp_hems.notify.error(config)
         raise
     finally:
