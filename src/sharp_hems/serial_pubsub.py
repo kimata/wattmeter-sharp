@@ -26,14 +26,15 @@ CH = "serial"
 SER_BAUD = 115200
 SER_TIMEOUT = 5
 
-should_terminate = threading.Event()
+should_terminate_server = threading.Event()
+should_terminate_client = threading.Event()
 
 
 def start_server(serial_port, server_port, liveness_file):
-    global should_terminate
+    global should_terminate_server
     logging.info("Start serial server...")
 
-    should_terminate.clear()
+    should_terminate_server.clear()
     context = zmq.Context()
 
     socket = context.socket(zmq.PUB)
@@ -44,7 +45,7 @@ def start_server(serial_port, server_port, liveness_file):
     logging.info("Server initialize done.")
 
     while True:
-        if should_terminate.is_set():
+        if should_terminate_server.is_set():
             break
 
         header = ser.read(2)
@@ -67,24 +68,42 @@ def start_server(serial_port, server_port, liveness_file):
 
 
 def stop_server():
-    global should_terminate
+    global should_terminate_server
 
-    should_terminate.set()
+    should_terminate_server.set()
 
 
 def start_client(server_host, server_port, handle, func):
+    global should_terminate_client
     logging.info("Start serial client...")
 
+    should_terminate_client.clear()
     socket = zmq.Context().socket(zmq.SUB)
     socket.connect(f"tcp://{server_host}:{server_port}")
     socket.setsockopt_string(zmq.SUBSCRIBE, CH)
+    socket.setsockopt(zmq.RCVTIMEO, 1000)  # 1秒のタイムアウト
 
     logging.info("Client initialize done.")
 
     while True:
-        ch, header_hex, payload_hex = socket.recv_string().split(" ", 2)
-        logging.debug("recv %s %s", header_hex, payload_hex)
-        func(handle, bytes.fromhex(header_hex), bytes.fromhex(payload_hex))
+        if should_terminate_client.is_set():
+            logging.info("Terminate serial client")
+            break
+
+        try:
+            ch, header_hex, payload_hex = socket.recv_string().split(" ", 2)
+            logging.debug("recv %s %s", header_hex, payload_hex)
+            func(handle, bytes.fromhex(header_hex), bytes.fromhex(payload_hex))
+        except zmq.error.Again:
+            continue
+
+    logging.warning("Stop serial client")
+
+
+def stop_client():
+    global should_terminate_client
+
+    should_terminate_client.set()
 
 
 if __name__ == "__main__":

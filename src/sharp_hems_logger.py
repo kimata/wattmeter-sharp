@@ -79,8 +79,7 @@ def process_packet(handle, header, payload):
             logging.info(my_lib.pretty.format(data))
             handle["packet"]["count"] += 1
             if (handle["packet"]["max"] != 0) and (handle["packet"]["count"] >= handle["packet"]["max"]):
-                # NOTE: テスト用で、お作法よく抜けるのは大変なので、強制終了する
-                os._exit(0)
+                sharp_hems.serial_pubsub.stop_client()
     else:
 
         def on_data_received(data):
@@ -104,6 +103,8 @@ def cleanup():
     global _metrics_collector, _sender
 
     logging.info("Starting cleanup process...")
+
+    sharp_hems.serial_pubsub.stop_client()
 
     # メトリクスコレクターをクローズ
     if _metrics_collector:
