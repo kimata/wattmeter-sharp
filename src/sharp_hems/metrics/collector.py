@@ -18,6 +18,12 @@ class MetricsCollector:
         self.db_path = db_path
         self._init_database()
 
+    def close(self):
+        """メトリクスコレクターをクローズします。"""
+        # 現在の実装では都度接続・切断しているため、
+        # 特別な処理は不要だが、将来的な拡張に備えて実装
+        logging.debug("Closing MetricsCollector for %s", self.db_path)
+
     def _init_database(self):
         """データベースとテーブルを初期化します。"""
         self.db_path.parent.mkdir(parents=True, exist_ok=True)

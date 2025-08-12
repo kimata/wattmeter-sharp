@@ -17,6 +17,7 @@ Options:
 import logging
 import os
 import pathlib
+import signal
 import sys
 
 import my_lib.fluentd_util
@@ -30,6 +31,10 @@ import sharp_hems.sniffer
 from sharp_hems.metrics.collector import MetricsCollector
 
 SCHEMA_CONFIG = "config.schema"
+
+# グローバル変数として保持（シグナルハンドラで使用）
+_metrics_collector = None
+_sender = None
 
 
 def record_metrics(metrics_collector, data):
@@ -93,12 +98,49 @@ def process_packet(handle, header, payload):
     sharp_hems.sniffer.process_packet(handle, header, payload, on_data_received)
 
 
+def cleanup():
+    """終了処理を実行します。"""
+    global _metrics_collector, _sender
+
+    logging.info("Starting cleanup process...")
+
+    # メトリクスコレクターをクローズ
+    if _metrics_collector:
+        try:
+            _metrics_collector.close()
+            logging.info("Closed metrics collector")
+        except Exception:
+            logging.exception("Failed to close metrics collector")
+
+    # Fluentd senderをクローズ
+    if _sender:
+        try:
+            if hasattr(_sender, "close"):
+                _sender.close()
+                logging.info("Closed Fluentd sender")
+        except Exception:
+            logging.exception("Failed to close Fluentd sender")
+
+    logging.info("Cleanup completed")
+
+
+def sig_handler(num, frame):  # noqa: ARG001
+    """シグナルハンドラー"""
+    logging.warning("Received signal %d", num)
+
+    if num in (signal.SIGTERM, signal.SIGINT):
+        cleanup()
+        sys.exit(0)
+
+
 def start(handle):
     try:
         sharp_hems.serial_pubsub.start_client(server_host, server_port, handle, process_packet)
     except:
         sharp_hems.notify.error(config)
         raise
+    finally:
+        cleanup()
 
 
 ######################################################################
@@ -137,13 +179,19 @@ if __name__ == "__main__":
         config["fluentd"]["data"]["tag"],
     )
     sender = my_lib.fluentd_util.get_handle(config["fluentd"]["data"]["tag"], host=config["fluentd"]["host"])
+    _sender = sender  # グローバル変数に保存（シグナルハンドラ用）
 
     # メトリクスコレクターを初期化
     metrics_collector = None
     if "metrics" in config:
         metrics_db_path = pathlib.Path(config["metrics"]["data"])
         metrics_collector = MetricsCollector(metrics_db_path)
+        _metrics_collector = metrics_collector  # グローバル変数に保存（シグナルハンドラ用）
         logging.info("Initialize metrics collector (db: %s)", metrics_db_path)
+
+    # シグナルハンドラーを設定
+    signal.signal(signal.SIGTERM, sig_handler)
+    signal.signal(signal.SIGINT, sig_handler)
 
     handle = {
         "sender": sender,
