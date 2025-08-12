@@ -505,6 +505,15 @@ def server_port():
         return s.getsockname()[1]
 
 
+@pytest.fixture(scope="session")
+def config():
+    import pathlib
+
+    import my_lib.config
+
+    return my_lib.config.load(CONFIG_FILE, pathlib.Path(SCHEMA_CONFIG))
+
+
 def test_server_all_packets(server_port):  # noqa: C901
     """packet.dumpのすべてのデータを使ったサーバーテスト"""
     import sharp_hems.serial_pubsub
