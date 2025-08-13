@@ -84,7 +84,7 @@ class MetricsCollector:
     @contextmanager
     def _get_connection(self):
         """SQLite接続のコンテキストマネージャー。"""
-        conn = my_lib.sqlite_util.create(self.db_path)
+        conn = sqlite3.connect(self.db_path)
         try:
             yield conn
         finally:
