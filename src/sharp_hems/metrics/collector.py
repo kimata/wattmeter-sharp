@@ -27,9 +27,7 @@ class MetricsCollector:
 
     def _init_database(self):
         """データベースとテーブルを初期化します。"""
-        conn = my_lib.sqlite_util.connect(self.db_path)
-
-        try:
+        with my_lib.sqlite_util.connect(self.db_path) as conn:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS sensor_heartbeats (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,17 +76,12 @@ class MetricsCollector:
             """)
 
             conn.commit()
-        finally:
-            conn.close()
 
     @contextmanager
     def _get_connection(self):
         """SQLite接続のコンテキストマネージャー。"""
-        conn = my_lib.sqlite_util.connect(self.db_path)
-        try:
+        with my_lib.sqlite_util.connect(self.db_path) as conn:
             yield conn
-        finally:
-            conn.close()
 
     @contextmanager
     def get_connection(self):
