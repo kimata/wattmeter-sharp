@@ -27,7 +27,7 @@ class MetricsCollector:
 
     def _init_database(self):
         """データベースとテーブルを初期化します。"""
-        conn = my_lib.sqlite_util.create(self.db_path)
+        conn = my_lib.sqlite_util.connect(self.db_path)
 
         try:
             conn.execute("""
@@ -84,7 +84,7 @@ class MetricsCollector:
     @contextmanager
     def _get_connection(self):
         """SQLite接続のコンテキストマネージャー。"""
-        conn = sqlite3.connect(self.db_path)
+        conn = my_lib.sqlite_util.connect(self.db_path)
         try:
             yield conn
         finally:
