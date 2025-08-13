@@ -178,6 +178,7 @@ test-playwright:
         - >
             uv run pytest tests/test_playwright.py
             --junit-xml=tests/evidence/playwright-junit.xml
+
     artifacts:
         when: always
         paths:
@@ -288,8 +289,9 @@ test-playwright-docker:
             --junit-xml=tests/evidence/playwright-docker-junit.xml
             tests/test_playwright.py --host ${APP_HOST} --port ${APP_PORT}
 
-        # ログ取得とクリーンアップ
-        - docker logs ${CI_JOB_NAME}-${CI_JOB_ID} > flask_log.txt
+    after_script:
+        # テスト成功・失敗に関わらず必ずログを取得
+        - docker logs ${CI_JOB_NAME}-${CI_JOB_ID} > flask_log.txt 2>&1 || true
         - docker stop ${CI_JOB_NAME}-${CI_JOB_ID} || true
         - docker network rm ${DOCKER_NETWORK} || true
 
@@ -301,7 +303,7 @@ test-playwright-docker:
     artifacts:
         when: always
         paths:
-            - flask_log_*.txt
+            - flask_log.txt
             - tests/evidence/**
         reports:
             junit: tests/evidence/playwright-docker-junit.xml
