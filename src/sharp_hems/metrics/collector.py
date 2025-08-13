@@ -7,6 +7,7 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
+import my_lib.sqlite_util
 import my_lib.time
 
 
@@ -26,9 +27,9 @@ class MetricsCollector:
 
     def _init_database(self):
         """データベースとテーブルを初期化します。"""
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = my_lib.sqlite_util.create(self.db_path)
 
-        with self._get_connection() as conn:
+        try:
             conn.execute("""
                 CREATE TABLE IF NOT EXISTS sensor_heartbeats (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,11 +78,13 @@ class MetricsCollector:
             """)
 
             conn.commit()
+        finally:
+            conn.close()
 
     @contextmanager
     def _get_connection(self):
         """SQLite接続のコンテキストマネージャー。"""
-        conn = sqlite3.connect(self.db_path)
+        conn = my_lib.sqlite_util.create(self.db_path)
         try:
             yield conn
         finally:
