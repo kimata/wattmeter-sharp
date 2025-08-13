@@ -179,6 +179,10 @@ test-playwright:
             uv run pytest tests/test_playwright.py
             --junit-xml=tests/evidence/playwright-junit.xml
 
+    after_script:
+        # テスト成功・失敗に関わらず必ずFlaskプロセスを終了
+        - pkill -f "python ./src/webui.py" || true
+
     artifacts:
         when: always
         paths:
