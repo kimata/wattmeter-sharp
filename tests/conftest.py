@@ -3,7 +3,6 @@ import logging
 import os
 import pathlib
 import subprocess
-import sys
 import time
 
 import pytest
@@ -47,7 +46,7 @@ def webserver(request):
 
     # Start the server process
     server_process = subprocess.Popen(  # noqa: S603
-        [sys.executable, "src/webui.py", "-p", str(port)],
+        ["uv", "run", "python", "src/webui.py", "-p", str(port)],  # noqa: S607
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
