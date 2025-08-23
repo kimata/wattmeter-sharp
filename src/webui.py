@@ -52,7 +52,7 @@ def create_app(config):
     import my_lib.webapp.base
     import my_lib.webapp.util
 
-    import sharp_hems.webui.webapi.sensor_stat
+    import sharp_hems.webui.api.sensor_stat
 
     app = flask.Flask("wattmeter-sharp")
 
@@ -64,7 +64,7 @@ def create_app(config):
     app.register_blueprint(my_lib.webapp.base.blueprint_default)
     app.register_blueprint(my_lib.webapp.util.blueprint, url_prefix=my_lib.webapp.config.URL_PREFIX)
     app.register_blueprint(
-        sharp_hems.webui.webapi.sensor_stat.blueprint, url_prefix=my_lib.webapp.config.URL_PREFIX
+        sharp_hems.webui.api.sensor_stat.blueprint, url_prefix=my_lib.webapp.config.URL_PREFIX
     )
 
     my_lib.webapp.config.show_handler_list(app)
