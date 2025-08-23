@@ -72,9 +72,9 @@ def communication_errors():
         flask.abort(500, f"Failed to get communication errors: {e!s}")
 
 
-@blueprint.route("/api/metrics", methods=["GET"])
+@blueprint.route("/api/sensor_stat", methods=["GET"])
 @my_lib.flask_util.support_jsonp
-def metrics():
+def sensor_stat():
     """
     センサーメトリクス情報を返すAPI。
 

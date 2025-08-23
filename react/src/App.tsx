@@ -22,7 +22,7 @@ dayjs.locale('ja')
 
 function App() {
   const [updateTime, setUpdateTime] = useState(dayjs().format('YYYY年MM月DD日 HH:mm:ss'))
-  const { data, error } = useApi<ApiResponse>(buildApiUrl('metrics'), { interval: 60000 })
+  const { data, error } = useApi<ApiResponse>(buildApiUrl('sensor_stat'), { interval: 60000 })
   const { data: errorData, error: errorApiError } = useApi<CommunicationErrorResponse>(buildApiUrl('communication_errors'), { interval: 60000 })
 
   useEffect(() => {
