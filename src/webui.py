@@ -46,7 +46,7 @@ def create_app(config):
 
     import my_lib.webapp.config
 
-    my_lib.webapp.config.URL_PREFIX = "/wattmeter-sharp"
+    my_lib.webapp.config.URL_PREFIX = "/wattmeter-sharp/metrics"
     my_lib.webapp.config.init(config)
 
     import my_lib.webapp.base

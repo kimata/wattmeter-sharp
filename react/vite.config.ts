@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    base: "/wattmeter-sharp/",
+    base: "/wattmeter-sharp/metrics/",
     plugins: [react()],
     define: {
         "import.meta.env.VITE_BUILD_DATE": JSON.stringify(
