@@ -12,7 +12,7 @@ import my_lib.time
 import sharp_hems.device
 from sharp_hems.metrics.collector import MetricsCollector
 
-blueprint = flask.Blueprint("webapi-sensor-stat", __name__)
+blueprint = flask.Blueprint("webapi-metrics", __name__)
 
 
 @blueprint.route("/api/communication_errors", methods=["GET"])
@@ -72,9 +72,9 @@ def communication_errors():
         flask.abort(500, f"Failed to get communication errors: {e!s}")
 
 
-@blueprint.route("/api/sensor_stat", methods=["GET"])
+@blueprint.route("/api/metrics", methods=["GET"])
 @my_lib.flask_util.support_jsonp
-def sensor_stat():
+def metrics():
     """
     センサーメトリクス情報を返すAPI。
 
