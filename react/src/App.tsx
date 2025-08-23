@@ -7,6 +7,7 @@ import './App.css'
 
 import type { ApiResponse, CommunicationErrorResponse } from './types'
 import { useApi } from './hooks/useApi'
+import { buildApiUrl } from './config/constants'
 import { ErrorMessage } from './components/ErrorMessage'
 import { LazyAvailabilityChart } from './components/LazyAvailabilityChart'
 import { SensorTable } from './components/SensorTable'
@@ -21,8 +22,8 @@ dayjs.locale('ja')
 
 function App() {
   const [updateTime, setUpdateTime] = useState(dayjs().format('YYYY年MM月DD日 HH:mm:ss'))
-  const { data, error } = useApi<ApiResponse>('/wattmeter-sharp/api/sensor_stat', { interval: 60000 })
-  const { data: errorData, error: errorApiError } = useApi<CommunicationErrorResponse>('/wattmeter-sharp/api/communication_errors', { interval: 60000 })
+  const { data, error } = useApi<ApiResponse>(buildApiUrl('sensor_stat'), { interval: 60000 })
+  const { data: errorData, error: errorApiError } = useApi<CommunicationErrorResponse>(buildApiUrl('communication_errors'), { interval: 60000 })
 
   useEffect(() => {
     if (data) {

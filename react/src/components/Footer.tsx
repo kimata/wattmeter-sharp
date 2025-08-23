@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
 import { version as reactVersion } from 'react'
 import { useApi } from '../hooks/useApi'
+import { buildApiUrl } from '../config/constants'
 import type { SysInfo } from '../types'
 
 interface FooterProps {
@@ -9,7 +10,7 @@ interface FooterProps {
 
 export function Footer({ updateTime }: FooterProps) {
   const buildDate = dayjs(import.meta.env.VITE_BUILD_DATE || new Date().toISOString())
-  const { data: sysInfo } = useApi<SysInfo>('/wattmeter-sharp/api/sysinfo', { interval: 300000 }) // 5分間隔で更新
+  const { data: sysInfo } = useApi<SysInfo>(buildApiUrl('sysinfo'), { interval: 300000 }) // 5分間隔で更新
 
   const getImageBuildDate = () => {
     if (!sysInfo?.image_build_date) return 'Unknown'

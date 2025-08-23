@@ -29,7 +29,7 @@ def wait_for_server_ready(host, port):
     start_time = time.time()
     while time.time() - start_time < TIMEOUT_SEC:
         try:
-            res = requests.get(app_url(host, port))  # noqa: S113
+            res = requests.get(get_app_url(host, port))  # noqa: S113
             if res.ok:
                 logging.info("サーバが %.1f 秒後に起動しました。", time.time() - start_time)
                 # NOTE: ページのロードに時間がかかるので、少し待つ
@@ -42,14 +42,14 @@ def wait_for_server_ready(host, port):
     raise RuntimeError(f"サーバーが {TIMEOUT_SEC}秒以内に起動しませんでした。")
 
 
-def app_url(host, port):
+def get_app_url(host, port):
     return APP_URL_TMPL.format(host=host, port=port)
 
 
 ######################################################################
 def test_sensor_monitoring_app(page, host, port):
     """センサー監視アプリの基本機能をテストします。"""
-    page.goto(app_url(host, port), wait_until="domcontentloaded")
+    page.goto(get_app_url(host, port), wait_until="domcontentloaded")
 
     # ページタイトルとメイン要素の確認
     expect(page.get_by_test_id("app-title")).to_have_text("SHARP HEMS センサー稼働状態")
@@ -75,7 +75,7 @@ def test_sensor_monitoring_app(page, host, port):
 
 def test_sensor_table_columns(page, host, port):
     """センサーテーブルの列構成をテストします。"""
-    page.goto(app_url(host, port), wait_until="domcontentloaded")
+    page.goto(get_app_url(host, port), wait_until="domcontentloaded")
 
     # テーブルヘッダーの確認
     table = page.get_by_test_id("sensors-table")
@@ -93,7 +93,7 @@ def test_sensor_table_columns(page, host, port):
 
 def test_sensor_table_sorting(page, host, port):
     """センサーテーブルのソート機能をテストします。"""
-    page.goto(app_url(host, port), wait_until="domcontentloaded")
+    page.goto(get_app_url(host, port), wait_until="domcontentloaded")
 
     table = page.get_by_test_id("sensors-table")
 
@@ -111,7 +111,7 @@ def test_sensor_table_sorting(page, host, port):
 
 def test_sensor_table_data_format(page, host, port):
     """センサーテーブルのデータ形式をテストします。"""
-    page.goto(app_url(host, port), wait_until="domcontentloaded")
+    page.goto(get_app_url(host, port), wait_until="domcontentloaded")
 
     table = page.get_by_test_id("sensors-table")
 
@@ -155,7 +155,7 @@ def test_sensor_table_data_format(page, host, port):
 def test_error_handling(page, host, port):
     """エラーハンドリングをテストします。"""
     # 存在しないエンドポイントにアクセス
-    page.goto(f"http://{host}:{port}/wattmeter-sharp/nonexistent")
+    page.goto(get_app_url(host, port) + "nonexistent")
 
     # 404エラーページまたはエラーメッセージが表示されることを期待
     # (実際の実装に依存するため、基本的なページ構造のチェックのみ)
@@ -164,7 +164,7 @@ def test_error_handling(page, host, port):
 
 def test_responsive_design(page, host, port):
     """レスポンシブデザインをテストします。"""
-    page.goto(app_url(host, port), wait_until="domcontentloaded")
+    page.goto(get_app_url(host, port), wait_until="domcontentloaded")
 
     # デスクトップサイズ
     page.set_viewport_size({"width": 1920, "height": 1080})

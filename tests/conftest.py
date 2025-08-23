@@ -53,7 +53,10 @@ def webserver(request):
     )
 
     # Wait for server to start
-    app_url = f"http://{host}:{port}/wattmeter-sharp/"
+    # Import get_app_url function from test_playwright
+    from test_playwright import get_app_url
+
+    app_url = get_app_url(host, port)
     timeout_sec = 60
     start_time = time.time()
 

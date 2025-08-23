@@ -9,6 +9,9 @@ export default defineConfig({
         "import.meta.env.VITE_BUILD_DATE": JSON.stringify(
             new Date().toISOString(),
         ),
+        "import.meta.env.VITE_API_BASE_URL": JSON.stringify(
+            "/wattmeter-sharp/metrics/",
+        ),
     },
     build: {
         // 並列処理を有効化
