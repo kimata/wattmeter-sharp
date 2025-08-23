@@ -7,7 +7,7 @@ import pytest
 import requests
 from playwright.sync_api import expect
 
-APP_URL_TMPL = "http://{host}:{port}/wattmeter-sharp/"
+APP_URL_TMPL = "http://{host}:{port}/wattmeter-sharp/metrics/"
 
 
 @pytest.fixture(autouse=True)
