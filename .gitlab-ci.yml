@@ -162,7 +162,7 @@ test-playwright:
         - uv run playwright install --with-deps chromium
 
         - >
-            APP_URL="http://127.0.0.1:5000/wattmeter-sharp/"
+            APP_URL="http://127.0.0.1:5000/wattmeter-sharp/metrics/"
         - >
             echo "APP_URL: ${APP_URL}"
         - >
@@ -272,10 +272,10 @@ test-playwright-docker:
         - >
             APP_PORT=$(docker port ${CI_JOB_NAME}-${CI_JOB_ID} 5000 | cut -d: -f2)
         - >
-            echo "Testing at http://${APP_HOST}:${APP_PORT}/wattmeter-sharp/"
+            echo "Testing at http://${APP_HOST}:${APP_PORT}/wattmeter-sharp/metrics/"
         - >
             timeout 90 bash -c "until curl -f --connect-timeout 5 --max-time 10
-            http://${APP_HOST}:${APP_PORT}/wattmeter-sharp/ > /dev/null 2>&1;
+            http://${APP_HOST}:${APP_PORT}/wattmeter-sharp/metrics/ > /dev/null 2>&1;
             do echo 'Waiting for app to start...'; sleep 3; done" || ACCESS_FAILED=1
 
         - |
