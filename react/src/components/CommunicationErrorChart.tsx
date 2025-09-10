@@ -152,7 +152,7 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
           },
           callback: function(value: string | number) {
             const index = Number(value)
-            if (index % 4 === 0) {
+            if (index % 4 === 0) {  // 2時間ごとに表示
               const label = histogram.bin_labels[index]
               if (label) {
                 // "00:00", "01:30" のような形式を "0時", "1時" に変換
@@ -194,7 +194,7 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
         <div className={styles.sectionHeader}>
           <h2 className="title is-4">
             <span className="icon"><i className="fas fa-chart-bar"></i></span>
-            通信エラー発生状況（過去24時間、合計: {histogram.total_errors}件）
+            通信エラー発生状況（過去1ヶ月、合計: {histogram.total_errors}件）
             <i
               className={`fas fa-link ${styles.permalinkIcon}`}
               onClick={() => copyPermalink('communication-error-chart')}

@@ -358,13 +358,13 @@ class MetricsCollector:
             hours: 遡る時間数（デフォルト24時間）
 
         Returns:
-            48個のbinに分けられたヒストグラムデータ
+            時間帯別ヒストグラムデータ（30分刻みで固定）
 
         """
         now = int(time.time())
         start_timestamp = now - (hours * 3600)  # hours時間前
 
-        # 48 binのヒストグラム（30分刻み）を初期化
+        # 常に48 binのヒストグラム（30分刻みで時間帯別に集計）
         histogram = [0] * 48
 
         with self._get_connection() as conn:
@@ -377,16 +377,17 @@ class MetricsCollector:
                 (start_timestamp, now),
             )
 
+            # 常に時間帯別に集計（過去のデータも含めて時間帯ごとに集計）
             for row in cursor.fetchall():
                 error_timestamp = row[0]
-
                 # UTCタイムスタンプを日本時間に変換
                 utc_datetime = datetime.datetime.fromtimestamp(error_timestamp, datetime.timezone.utc)
                 jst_datetime = utc_datetime.astimezone(my_lib.time.get_zoneinfo())
 
-                # 日本時間での今日の0時からの経過秒数に変換
-                midnight_jst = jst_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
-                seconds_from_midnight = int((jst_datetime - midnight_jst).total_seconds())
+                # 日本時間での0時からの経過秒数に変換（日付に関係なく時間帯で集計）
+                hour = jst_datetime.hour
+                minute = jst_datetime.minute
+                seconds_from_midnight = hour * 3600 + minute * 60 + jst_datetime.second
 
                 # 30分刻みのbin（0-47）に分類
                 bin_index = min(int(seconds_from_midnight // 1800), 47)  # 1800秒 = 30分

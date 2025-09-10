@@ -49,8 +49,8 @@ def communication_errors():
         metrics_db_path = Path(config["metrics"]["data"])
         collector = MetricsCollector(metrics_db_path)
 
-        # 通信エラーヒストグラム（過去24時間）を取得
-        histogram = collector.get_communication_errors_histogram(hours=24)
+        # 通信エラーヒストグラム（過去1ヶ月）を取得
+        histogram = collector.get_communication_errors_histogram(hours=24 * 30)
 
         # 最新の通信エラーログ（50件）を取得
         latest_errors = collector.get_latest_communication_errors(limit=50)
