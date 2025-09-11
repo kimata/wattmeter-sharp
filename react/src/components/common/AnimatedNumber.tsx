@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, useSpring, useTransform } from 'framer-motion';
 
 interface AnimatedNumberProps {
@@ -18,6 +18,8 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
 }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [previousValue, setPreviousValue] = useState(value);
+  const lastUpdateTime = useRef<number>(Date.now());
+  const isDocumentVisible = useRef<boolean>(true);
   const spring = useSpring(isInitialized ? value : value, {
     duration: duration * 1000,
     bounce: 0.1
@@ -34,12 +36,42 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
     return fixedValue;
   });
 
+  // ドキュメントの可視状態を監視
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isDocumentVisible.current = false;
+      } else {
+        // タブがアクティブになった時
+        isDocumentVisible.current = true;
+        const timeSinceLastUpdate = Date.now() - lastUpdateTime.current;
+
+        // 5秒以上バックグラウンドにいた場合はアニメーションをスキップ
+        if (timeSinceLastUpdate > 5000) {
+          spring.jump(value);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [value, spring]);
+
+  useEffect(() => {
+    lastUpdateTime.current = Date.now();
+
     if (!isInitialized) {
       spring.jump(value);
       setIsInitialized(true);
     } else {
-      spring.set(value);
+      // ドキュメントが非表示の場合はアニメーションをスキップ
+      if (document.hidden) {
+        spring.jump(value);
+      } else {
+        spring.set(value);
+      }
     }
     setPreviousValue(value);
   }, [value, spring, isInitialized]);
