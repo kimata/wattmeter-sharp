@@ -3,8 +3,8 @@
 センサーからのパケットを Pub-Sub パターンで配信します。
 
 Usage:
-  serial_pubsub.py -S [-t SERIAL_PORT] [-p SERVER_PORT] [-d]
-  serial_pubsub.py [-s SERVER_HOST] [-p SERVER_PORT] [-c CONFIG] [-d]
+  serial_pubsub.py -S [-t SERIAL_PORT] [-p SERVER_PORT] [-D]
+  serial_pubsub.py [-s SERVER_HOST] [-p SERVER_PORT] [-c CONFIG] [-D]
 
 Options:
   -S                : サーバーモードで動作します。
@@ -12,7 +12,7 @@ Options:
   -t SERIAL_PORT    : HEMS 中継器を接続するシリアルポートを指定します。 [default: /dev/ttyUSB0]
   -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します。 [default: 4444]
   -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
-  -d                : デバッグモードで動作します。
+  -D                : デバッグモードで動作します。
 """
 
 import logging
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     server_host = args["-s"]
     server_port = int(args["-p"])
     serial_port = args["-t"]
-    debug_mode = args["-d"]
+    debug_mode = args["-D"]
 
     my_lib.logger.init("test", level=logging.DEBUG if debug_mode else logging.INFO)
 
