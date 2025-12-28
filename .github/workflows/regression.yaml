@@ -59,14 +59,14 @@ jobs:
                   uv sync
 
             - name: Run Tests
-              run: uv run pytest --numprocesses=auto --junit-xml=tests/evidence/junit.xml tests/test_basic.py
+              run: uv run pytest
 
             - name: Publish Test Results
               uses: dorny/test-reporter@v1
               if: success() || failure()
               with:
                   name: test results
-                  path: tests/evidence/junit.xml
+                  path: reports/junit-report.xml
                   reporter: java-junit
 
             - name: Upload coverage file
@@ -74,12 +74,12 @@ jobs:
               if: always()
               with:
                   name: pytest
-                  path: tests/evidence
+                  path: reports
 
             - name: Upload artifact
               uses: actions/upload-pages-artifact@v3
               with:
-                  path: tests/evidence
+                  path: reports
 
     deploy:
         environment:
