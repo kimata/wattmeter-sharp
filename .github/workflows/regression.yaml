@@ -62,7 +62,7 @@ jobs:
               run: uv run pytest
 
             - name: Publish Test Results
-              uses: dorny/test-reporter@v1
+              uses: dorny/test-reporter@v2
               if: success() || failure()
               with:
                   name: test results
