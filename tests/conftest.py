@@ -104,6 +104,6 @@ def page(page):
 def browser_context_args(browser_context_args, request):
     return {
         **browser_context_args,
-        "record_video_dir": f"tests/evidence/{request.node.name}",
+        "record_video_dir": f"reports/videos/{request.node.name}",
         "record_video_size": {"width": 2400, "height": 1600},
     }
