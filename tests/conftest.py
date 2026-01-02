@@ -98,12 +98,3 @@ def page(page):
     expect.set_options(timeout=timeout)
 
     return page
-
-
-@pytest.fixture
-def browser_context_args(browser_context_args, request):
-    return {
-        **browser_context_args,
-        "record_video_dir": f"reports/videos/{request.node.name}",
-        "record_video_size": {"width": 2400, "height": 1600},
-    }
