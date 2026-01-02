@@ -98,3 +98,17 @@ def page(page):
     expect.set_options(timeout=timeout)
 
     return page
+
+
+@pytest.fixture
+def browser_context_args(browser_context_args, request):
+    """環境変数 RECORD_VIDEO=true でビデオ録画を有効化"""
+    args = {**browser_context_args}
+
+    if os.environ.get("RECORD_VIDEO", "").lower() == "true":
+        video_dir = pathlib.Path("reports/videos") / request.node.name
+        video_dir.mkdir(parents=True, exist_ok=True)
+        args["record_video_dir"] = str(video_dir)
+        args["record_video_size"] = {"width": 2400, "height": 1600}
+
+    return args
