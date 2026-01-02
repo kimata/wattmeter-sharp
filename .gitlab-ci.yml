@@ -133,14 +133,12 @@ test-walk-through:
         - test-prepare
 
     script:
-        - uv run pytest --numprocesses=auto --junit-xml=tests/evidence/junit-report.xml tests/test_basic.py
+        - uv run pytest --numprocesses=auto --junit-xml=reports/junit-report.xml tests/test_basic.py
 
     artifacts:
         when: always
-        paths:
-            - tests/evidence/**
         reports:
-            junit: tests/evidence/junit-report.xml
+            junit: reports/junit-report.xml
 
 test-playwright:
     stage: test
@@ -177,7 +175,7 @@ test-playwright:
 
         - >
             uv run pytest tests/test_playwright.py --no-cov
-            --junit-xml=tests/evidence/playwright-junit.xml
+            --junit-xml=reports/playwright-junit.xml
 
     after_script:
         # テスト成功・失敗に関わらず必ずFlaskプロセスを終了
@@ -187,9 +185,8 @@ test-playwright:
         when: always
         paths:
             - flask_log.txt
-            - tests/evidence/**
         reports:
-            junit: tests/evidence/playwright-junit.xml
+            junit: reports/playwright-junit.xml
 
 test-docker:
     stage: test
@@ -290,8 +287,7 @@ test-playwright-docker:
         # Playwrightテストを実行（ホストからポート経由で接続）
         - >
             uv run pytest tests/test_playwright.py --no-cov
-            --tracing on --output tests/evidence/playwright
-            --junit-xml=tests/evidence/playwright-docker-junit.xml
+            --junit-xml=reports/playwright-docker-junit.xml
             --host ${APP_HOST} --port ${APP_PORT}
 
     after_script:
@@ -309,9 +305,8 @@ test-playwright-docker:
         when: always
         paths:
             - flask_log.txt
-            - tests/evidence/**
         reports:
-            junit: tests/evidence/playwright-docker-junit.xml
+            junit: reports/playwright-docker-junit.xml
 
 tag-latest:
     stage: tag-latest
