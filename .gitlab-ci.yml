@@ -176,7 +176,7 @@ test-playwright:
             fi
 
         - >
-            uv run pytest tests/test_playwright.py
+            uv run pytest tests/test_playwright.py --no-cov
             --junit-xml=tests/evidence/playwright-junit.xml
 
     after_script:
@@ -289,9 +289,10 @@ test-playwright-docker:
 
         # Playwrightテストを実行（ホストからポート経由で接続）
         - >
-            uv run pytest --tracing on --output tests/evidence/playwright
+            uv run pytest tests/test_playwright.py --no-cov
+            --tracing on --output tests/evidence/playwright
             --junit-xml=tests/evidence/playwright-docker-junit.xml
-            tests/test_playwright.py --host ${APP_HOST} --port ${APP_PORT}
+            --host ${APP_HOST} --port ${APP_PORT}
 
     after_script:
         # テスト成功・失敗に関わらず必ずログを取得
