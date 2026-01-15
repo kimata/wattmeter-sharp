@@ -42,9 +42,13 @@ build-react:
         paths:
             - react/dist/
     cache:
-        key: "${CI_JOB_NAME}"
-        paths:
-            - .npm/
+        - key:
+              files:
+                  - react/package-lock.json
+          fallback_keys:
+              - npm-cache-${CI_PROJECT_ID}
+          paths:
+              - .npm/
 
 build-image:
     stage: build
@@ -123,6 +127,8 @@ test-prepare:
         - key:
               files:
                   - uv.lock
+          fallback_keys:
+              - uv-cache-${CI_PROJECT_ID}
           paths:
               - ${UV_CACHE_DIR}
 
@@ -297,7 +303,7 @@ test-playwright-docker:
         - docker network rm ${DOCKER_NETWORK} || true
 
     cache:
-        key: playwright-cache
+        key: playwright-${CI_PROJECT_ID}
         paths:
             - .cache/ms-playwright/
 
