@@ -30,7 +30,7 @@ build-frontend:
 
     needs: []
 
-    image: node:22.15
+    image: node:22.19
 
     before_script: []
 
