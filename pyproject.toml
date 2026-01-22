@@ -1,6 +1,6 @@
 [project]
 name = "wattmeter-sharp"
-version = "0.1.0"
+dynamic = ["version"]
 description = "シャープの HEMS コントローラ JH-AG01 の内部通信を読み取って，電力センサーの計測値を取得するスクリプトです．"
 authors = [
     { name = "KIMATA Tetsuya", email = "kimata@green-rabbit.net" }
