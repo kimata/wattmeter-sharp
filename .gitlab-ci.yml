@@ -132,7 +132,7 @@ test-prepare:
           paths:
               - ${UV_CACHE_DIR}
 
-test-walk-through:
+test-pytest:
     stage: test
 
     needs:
@@ -320,7 +320,7 @@ tag-latest:
     needs:
         - generate-tag
         - build-image
-        - job: test-walk-through
+        - job: test-pytest
           artifacts: false
         - job: test-docker
           artifacts: false
@@ -344,7 +344,7 @@ deploy:
     needs:
         - generate-tag
         - build-image
-        - job: test-walk-through
+        - job: test-pytest
           artifacts: false
         - job: test-docker
           artifacts: false
