@@ -21,10 +21,10 @@ jobs:
                 python-version: ["3.12"]
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v6
 
             - name: Set up Python ${{ matrix.python-version }}
-              uses: actions/setup-python@v5
+              uses: actions/setup-python@v6
               with:
                   python-version: ${{ matrix.python-version }}
 
@@ -43,7 +43,7 @@ jobs:
 
             - name: Cache python modules
               id: cache-python-modules
-              uses: actions/cache@v4
+              uses: actions/cache@v5
               env:
                   cache-name: cache-python-modules
               with:
@@ -62,7 +62,7 @@ jobs:
               run: uv run pytest
 
             - name: Publish Test Results
-              uses: dorny/test-reporter@v1
+              uses: dorny/test-reporter@v2
               if: success() || failure()
               with:
                   name: test results
@@ -70,7 +70,7 @@ jobs:
                   reporter: java-junit
 
             - name: Upload coverage file
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v6
               if: always()
               with:
                   name: pytest
