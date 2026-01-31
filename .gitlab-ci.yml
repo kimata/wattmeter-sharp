@@ -36,7 +36,7 @@ build-frontend:
 
     script:
         - cd frontend
-        - npm ci --cache .npm --prefer-offline
+        - npm ci --cache .npm --prefer-offline --no-audit --no-fund
         - npm run build
     artifacts:
         paths:
