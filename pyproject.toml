@@ -6,13 +6,13 @@ authors = [
     { name = "KIMATA Tetsuya", email = "kimata@green-rabbit.net" }
 ]
 readme = "README.md"
-requires-python = ">= 3.10"
+requires-python = ">= 3.11"
 
 dependencies = [
     "docopt-ng>=0.9.0",
     "fluent-logger>=0.11.1",
     "influxdb-client[ciso]>=1.44.0",
-    "my-lib @ git+https://github.com/kimata/my-py-lib@103d48606b4f613bfdbe128440709aad0bc51523",
+    "my-lib @ git+https://github.com/kimata/my-py-lib@382621749920b8c09145ba739335616689bae96d",
     "pyzmq>=26.4.0",
     "pyserial>=3.5",
     "flask>=3.1.1",
@@ -37,8 +37,11 @@ dev = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sharp_hems"]
