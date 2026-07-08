@@ -41,19 +41,22 @@ def sig_handler(num, frame):  # noqa: ARG001
         term()
 
 
+URL_PREFIX = "/wattmeter-sharp/metrics"
+
+
 def create_app(config):
     # NOTE: アクセスログは無効にする
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
-    import my_lib.webapp.config
-
-    my_lib.webapp.config.URL_PREFIX = "/wattmeter-sharp/metrics"
-    my_lib.webapp.config.init(config)
-
     import my_lib.webapp.base
+    import my_lib.webapp.config
     import my_lib.webapp.util
 
     import sharp_hems.webui.api.metrics
+    import sharp_hems.webui.api.power
+
+    webapp_config = my_lib.webapp.config.WebappConfig.parse(config["webapp"])
+    environment = my_lib.webapp.config.build_environment(webapp_config, url_prefix=URL_PREFIX)
 
     app = flask.Flask("wattmeter-sharp")
 
@@ -61,10 +64,13 @@ def create_app(config):
 
     app.config["CONFIG"] = config
 
-    app.register_blueprint(my_lib.webapp.base.blueprint, url_prefix=my_lib.webapp.config.URL_PREFIX)
-    app.register_blueprint(my_lib.webapp.base.blueprint_default)
-    app.register_blueprint(my_lib.webapp.util.blueprint, url_prefix=my_lib.webapp.config.URL_PREFIX)
-    app.register_blueprint(sharp_hems.webui.api.metrics.blueprint, url_prefix=my_lib.webapp.config.URL_PREFIX)
+    app.register_blueprint(
+        my_lib.webapp.base.create_static_blueprint(environment=environment), url_prefix=URL_PREFIX
+    )
+    app.register_blueprint(my_lib.webapp.base.create_root_redirect_blueprint(url_prefix=URL_PREFIX))
+    app.register_blueprint(my_lib.webapp.util.blueprint, url_prefix=URL_PREFIX)
+    app.register_blueprint(sharp_hems.webui.api.metrics.blueprint, url_prefix=URL_PREFIX)
+    app.register_blueprint(sharp_hems.webui.api.power.blueprint, url_prefix=URL_PREFIX)
 
     my_lib.webapp.config.show_handler_list(app)
 

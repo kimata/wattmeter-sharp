@@ -22,16 +22,18 @@ SCHEMA_CONFIG = "config.schema"
 def hems_status_check(config, dev_define_file):
     sharp_hems.device.reload(dev_define_file)
 
+    db_config = my_lib.sensor_data.InfluxDBConfig.parse(config["influxdb"])
+
     for dev_name in sharp_hems.device.get_list():
         data_valid = my_lib.sensor_data.fetch_data(
-            config["influxdb"],
+            db_config,
             "{tag}.{label}".format(
                 tag=config["fluentd"]["data"]["tag"], label=config["fluentd"]["data"]["label"]
             ),
             dev_name,
             config["fluentd"]["data"]["field"],
             "-1h",
-        )["valid"]
+        ).valid
         if data_valid:
             logging.info("%0s: OK", dev_name)
         else:

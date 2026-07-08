@@ -10,7 +10,7 @@ fluentd:
 
 influxdb:
     url: http://proxy.green-rabbit.net:8086
-    token: tE0mEqUCOoDxGc_aKshQMtvY5HeGHxc76rNZ_i1XnXz8haa9_35uP_-X7P7IwykR_Q8aFRNAGWRrR59AFAx5qw==
+    token: YOUR_INFLUXDB_TOKEN
     org: home
     bucket: sensor
 
@@ -27,7 +27,7 @@ webapp:
         name: JST
         zone: Asia/Tokyo
 
-    static_dir_path: react/dist
+    static_dir_path: frontend/dist
 
 liveness:
     file:

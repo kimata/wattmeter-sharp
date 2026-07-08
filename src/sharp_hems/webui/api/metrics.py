@@ -2,17 +2,29 @@
 
 import datetime
 import logging
+import threading
 from pathlib import Path
 
 import flask
 import my_lib.flask_util
-import my_lib.sensor_data
 import my_lib.time
 
 import sharp_hems.device
 from sharp_hems.metrics.collector import MetricsCollector
 
 blueprint = flask.Blueprint("webapi-metrics", __name__)
+
+_collector_lock = threading.Lock()
+
+
+def _get_collector() -> MetricsCollector:
+    """アプリケーション単位で共有する MetricsCollector を返す。"""
+    app_config = flask.current_app.config
+    with _collector_lock:
+        if "METRICS_COLLECTOR" not in app_config:
+            metrics_db_path = Path(app_config["CONFIG"]["metrics"]["data"])
+            app_config["METRICS_COLLECTOR"] = MetricsCollector(metrics_db_path)
+        return app_config["METRICS_COLLECTOR"]
 
 
 @blueprint.route("/api/communication_errors", methods=["GET"])
@@ -40,14 +52,7 @@ def communication_errors():
 
     """
     try:
-        # 設定から必要な情報を取得
-        config = flask.current_app.config["CONFIG"]
-        if not config:
-            flask.abort(500, "Configuration not found")
-
-        # メトリクスDBのパスを取得
-        metrics_db_path = Path(config["metrics"]["data"])
-        collector = MetricsCollector(metrics_db_path)
+        collector = _get_collector()
 
         # 通信エラーヒストグラム（過去1ヶ月）を取得
         histogram = collector.get_communication_errors_histogram(hours=24 * 30)
@@ -58,7 +63,7 @@ def communication_errors():
         # 通信エラーの時刻をUTCからJSTに変換
         for error in latest_errors:
             utc_datetime = datetime.datetime.strptime(error["datetime"], "%Y-%m-%d %H:%M:%S").replace(
-                tzinfo=datetime.timezone.utc
+                tzinfo=datetime.UTC
             )
             jst_datetime = utc_datetime.astimezone(my_lib.time.get_zoneinfo())
             error["datetime"] = jst_datetime.strftime("%Y-%m-%d %H:%M:%S")
@@ -86,22 +91,15 @@ def sensor_stat():
                     "name": "センサー名",
                     "availability_total": 95.5,
                     "availability_24h": 98.0,
-                    "last_received": "YYYY-MM-DD HH:MM:SS",
-                    "power_consumption": 1023
+                    "last_received": "YYYY-MM-DD HH:MM:SS"
                 }
             ]
         }
 
     """
     try:
-        # 設定から必要な情報を取得
         config = flask.current_app.config["CONFIG"]
-        if not config:
-            flask.abort(500, "Configuration not found")
-
-        # メトリクスDBのパスを取得
-        metrics_db_path = Path(config["metrics"]["data"])
-        collector = MetricsCollector(metrics_db_path)
+        collector = _get_collector()
 
         # デバイス定義ファイルを読み込み
         device_define_file = Path(config["device"]["define"])
@@ -109,7 +107,7 @@ def sensor_stat():
         sensor_names = sharp_hems.device.get_list()
 
         # 現在日付を取得 (将来の拡張用に準備)
-        # today = datetime.datetime.now(datetime.timezone.utc).date()
+        # today = datetime.datetime.now(datetime.UTC).date()
 
         # メトリクス収集開始日を取得（最初のレコード日付）
         start_date = _get_metrics_start_date(collector)
@@ -122,7 +120,7 @@ def sensor_stat():
             last_received = None
             if latest_timestamp:
                 # UTCからJSTに変換
-                utc_datetime = datetime.datetime.fromtimestamp(latest_timestamp, datetime.timezone.utc)
+                utc_datetime = datetime.datetime.fromtimestamp(latest_timestamp, datetime.UTC)
                 jst_datetime = utc_datetime.astimezone(my_lib.time.get_zoneinfo())
                 last_received = jst_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -132,16 +130,13 @@ def sensor_stat():
             # 過去24時間の稼働率を計算
             last_24h_availability = _calculate_last_24h_availability(collector, sensor_name)
 
-            # 最新の電力消費値を取得
-            power_consumption = _get_latest_power_consumption(config, sensor_name)
-
             sensors_metrics.append(
                 {
                     "name": sensor_name,
                     "availability_total": total_availability,
                     "availability_24h": last_24h_availability,
                     "last_received": last_received,
-                    "power_consumption": power_consumption,
+                    "last_received_ts": latest_timestamp,
                 }
             )
 
@@ -173,11 +168,11 @@ def _get_metrics_start_date(collector: MetricsCollector) -> str:
         result = cursor.fetchone()
         if result and result[0] is not None:
             earliest_timestamp = result[0]
-            earliest_date = datetime.datetime.fromtimestamp(earliest_timestamp, datetime.timezone.utc).date()
+            earliest_date = datetime.datetime.fromtimestamp(earliest_timestamp, datetime.UTC).date()
             return earliest_date.strftime("%Y-%m-%d")
         else:
             # データがない場合は今日の日付を返す
-            return datetime.datetime.now(datetime.timezone.utc).date().strftime("%Y-%m-%d")
+            return datetime.datetime.now(datetime.UTC).date().strftime("%Y-%m-%d")
 
 
 def _calculate_total_availability(collector: MetricsCollector, sensor_name: str, _start_date: str) -> float:
@@ -213,7 +208,7 @@ def _calculate_total_availability(collector: MetricsCollector, sensor_name: str,
             return 0.0
 
     # 現在時刻
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     current_timestamp = int(now.timestamp())
 
     # タイムスロット範囲を計算
@@ -282,7 +277,7 @@ def _calculate_last_24h_availability(collector: MetricsCollector, sensor_name: s
         過去24時間の稼働率（%）
 
     """
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     current_timestamp = int(now.timestamp())
 
     # データ開始時刻を取得
@@ -358,54 +353,3 @@ def _calculate_last_24h_availability(collector: MetricsCollector, sensor_name: s
         return 0.0
 
     return round((received_slots / expected_slots) * 100, 2)
-
-
-def _get_latest_power_consumption(config, sensor_name: str) -> int | None:
-    """
-    センサーの最新の電力消費値を取得します。
-
-    Args:
-        config: アプリケーション設定
-        sensor_name: センサー名
-
-    Returns:
-        最新の電力消費値（W）、データがない場合はNone
-
-    """
-    try:
-        # InfluxDBの設定をチェック
-        if "influxdb" not in config:
-            logging.warning("InfluxDB configuration not found for sensor %s", sensor_name)
-            return None
-
-        # InfluxDBから最新の電力データを取得
-        measurement = "{tag}.{label}".format(
-            tag=config["fluentd"]["data"]["tag"], label=config["fluentd"]["data"]["label"]
-        )
-        field = config["fluentd"]["data"]["field"]
-
-        sensor_data = my_lib.sensor_data.fetch_data(
-            config["influxdb"],
-            measurement,
-            sensor_name,
-            field,
-            last=True,
-        )
-
-        if sensor_data.get("valid"):
-            # valueキーから直接電力値を取得（sharp_hems_status.pyと同じ方式）
-            power_value = sensor_data.get("value")[0]
-            if power_value is not None:
-                power_value = int(power_value)
-                logging.info("Power value for %s: %s", sensor_name, power_value)
-                return power_value
-            else:
-                logging.info("Power value is None for %s", sensor_name)
-                return None
-        else:
-            logging.info("No valid power data found for %s", sensor_name)
-            return None
-
-    except Exception:
-        logging.exception("Failed to get power consumption for %s", sensor_name)
-        return None
