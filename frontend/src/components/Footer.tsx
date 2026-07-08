@@ -1,47 +1,38 @@
-import dayjs from 'dayjs'
-import { version as reactVersion } from 'react'
-import { useApi } from '../hooks/useApi'
-import { buildApiUrl } from '../config/constants'
-import type { SysInfo } from '../types'
+import dayjs from "dayjs";
+import { version as reactVersion } from "react";
+
+import { useApi } from "../hooks/useApi";
+import { buildApiUrl } from "../config/constants";
+import type { SysInfo } from "../types";
 
 interface FooterProps {
-  updateTime: string
+    updateTime: string;
 }
 
 export function Footer({ updateTime }: FooterProps) {
-  const buildDate = dayjs(import.meta.env.VITE_BUILD_DATE || new Date().toISOString())
-  const { data: sysInfo } = useApi<SysInfo>(buildApiUrl('sysinfo'), { interval: 300000 }) // 5分間隔で更新
+    const buildDate = dayjs(
+        import.meta.env.VITE_BUILD_DATE || new Date().toISOString(),
+    );
+    const { data: sysInfo } = useApi<SysInfo>(buildApiUrl("sysinfo"), {
+        interval: 300000,
+    });
 
-  const getImageBuildDate = () => {
-    if (!sysInfo?.image_build_date) return 'Unknown'
-    const buildDate = dayjs(sysInfo.image_build_date)
-    return `${buildDate.format('YYYY年MM月DD日 HH:mm:ss')} [${buildDate.fromNow()}]`
-  }
-
-  return (
-    <div className="is-pulled-right has-text-right p-2 mt-4" data-testid="footer">
-      <div className="is-size-6">
-        <p className="has-text-grey mb-0 is-size-7">
-          更新日時: {updateTime}
-        </p>
-        <p className="has-text-grey mb-0 is-size-7">
-          イメージビルド: {getImageBuildDate()}
-        </p>
-        <p className="has-text-grey mb-0 is-size-7">
-          React ビルド: {buildDate.format('YYYY年MM月DD日 HH:mm:ss')} [{buildDate.fromNow()}]
-        </p>
-        <p className="has-text-grey mb-0 is-size-7">
-          React バージョン: {reactVersion}
-        </p>
-        <p className="is-size-2">
-          <a
-            href="https://github.com/kimata/wattmeter-sharp"
-            className="has-text-grey-light"
-          >
-            <i className="fab fa-github"></i>
-          </a>
-        </p>
-      </div>
-    </div>
-  )
+    return (
+        <footer className="app-footer" data-testid="footer">
+            <div>
+                <div>最終更新: {updateTime}</div>
+                {sysInfo?.image_build_date && (
+                    <div>
+                        イメージビルド:{" "}
+                        {dayjs(sysInfo.image_build_date).format("YYYY/MM/DD HH:mm")}
+                    </div>
+                )}
+                <div>
+                    フロントエンドビルド: {buildDate.format("YYYY/MM/DD HH:mm")} (React{" "}
+                    {reactVersion})
+                </div>
+            </div>
+            <a href="https://github.com/kimata/wattmeter-sharp">GitHub ↗</a>
+        </footer>
+    );
 }

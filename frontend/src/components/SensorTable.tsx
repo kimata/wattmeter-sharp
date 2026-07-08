@@ -1,312 +1,148 @@
-import { useState, useRef, useEffect } from 'react'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
-import 'dayjs/locale/ja'
-import type { SensorData } from '../types'
-import { AnimatedNumber } from './common/AnimatedNumber'
-import styles from './CommunicationError.module.css'
+import { useState } from "react";
+import dayjs from "dayjs";
 
-dayjs.extend(relativeTime)
-dayjs.locale('ja')
+import {
+    deviceIcon,
+    formatAgo,
+    CONN_STATE_LABEL,
+    CONN_STATE_CHIP,
+} from "../utils/device";
+import type { DeviceView } from "../App";
 
 interface SensorTableProps {
-  sensors: SensorData[]
+    devices: DeviceView[];
+    nowSec: number;
 }
 
-type SortKey = 'index' | 'name' | 'availability_total' | 'availability_24h' | 'last_received' | 'status' | 'power_consumption'
-type SortDirection = 'asc' | 'desc'
+type SortKey = "name" | "state" | "availability_24h" | "availability_total" | "last_received";
 
-export function SensorTable({ sensors }: SensorTableProps) {
-  const [sortKey, setSortKey] = useState<SortKey | null>(null)
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
-  const notificationRef = useRef<HTMLDivElement>(null)
+const STATE_ORDER = { lost: 0, disconnected: 1, unstable: 2, online: 3 };
 
-  useEffect(() => {
-    // ページ読み込み時にハッシュがあれば該当要素にスクロール
-    if (window.location.hash === '#sensor-details') {
-      const element = document.getElementById('sensor-details')
-      if (element) {
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }, 500)
-      }
-    }
-  }, [])
+function availClass(percent: number): string {
+    if (percent >= 90) return "good";
+    if (percent >= 70) return "warn";
+    return "bad";
+}
 
-  const copyPermalink = (elementId: string) => {
-    const currentUrl = window.location.origin + window.location.pathname
-    const permalink = currentUrl + '#' + elementId
-
-    // Clipboard APIが利用可能かチェック
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      navigator.clipboard.writeText(permalink).then(() => {
-        showCopyNotification('パーマリンクをコピーしました')
-        window.history.pushState(null, '', '#' + elementId)
-      }).catch(() => {
-        // Clipboard APIが失敗した場合のフォールバック
-        fallbackCopyToClipboard(permalink, elementId)
-      })
-    } else {
-      // Clipboard APIが利用できない場合のフォールバック
-      fallbackCopyToClipboard(permalink, elementId)
-    }
-  }
-
-  const fallbackCopyToClipboard = (text: string, elementId: string) => {
-    try {
-      const textArea = document.createElement('textarea')
-      textArea.value = text
-      textArea.style.position = 'fixed'
-      textArea.style.left = '-999999px'
-      textArea.style.top = '-999999px'
-      document.body.appendChild(textArea)
-      textArea.focus()
-      textArea.select()
-      const successful = document.execCommand('copy')
-      document.body.removeChild(textArea)
-
-      if (successful) {
-        showCopyNotification('パーマリンクをコピーしました')
-      } else {
-        showCopyNotification('コピーに失敗しました')
-      }
-      window.history.pushState(null, '', '#' + elementId)
-    } catch (err) {
-      console.error('コピーに失敗しました:', err)
-      showCopyNotification('コピーに失敗しました')
-      window.history.pushState(null, '', '#' + elementId)
-    }
-  }
-
-  const showCopyNotification = (message: string) => {
-    if (!notificationRef.current) return
-
-    notificationRef.current.textContent = message
-    notificationRef.current.classList.add(styles.show)
-
-    setTimeout(() => {
-      notificationRef.current?.classList.remove(styles.show)
-    }, 3000)
-  }
-
-  const handleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortKey(key)
-      // 状態列は降順、他の列は降順を初期値とする
-      setSortDirection('desc')
-    }
-  }
-
-  const getSortIcon = (key: SortKey) => {
-    if (sortKey !== key) return ''
-    return sortDirection === 'asc' ? ' ▲' : ' ▼'
-  }
-
-  const getStatusValue = (sensor: SensorData) => {
-    if (sensor.availability_24h >= 90) return 3 // 正常
-    if (sensor.availability_24h >= 70) return 2 // 警告
-    return 1 // 異常
-  }
-
-  const sortedSensors = sortKey ? [...sensors].sort((a, b) => {
-    let aValue: any
-    let bValue: any
-
-    switch (sortKey) {
-      case 'index':
-        aValue = sensors.indexOf(a)
-        bValue = sensors.indexOf(b)
-        break
-      case 'name':
-        aValue = a.name
-        bValue = b.name
-        break
-      case 'availability_total':
-        aValue = a.availability_total
-        bValue = b.availability_total
-        break
-      case 'availability_24h':
-        aValue = a.availability_24h
-        bValue = b.availability_24h
-        break
-      case 'last_received':
-        aValue = a.last_received ? dayjs(a.last_received).valueOf() : 0
-        bValue = b.last_received ? dayjs(b.last_received).valueOf() : 0
-        break
-      case 'status':
-        aValue = getStatusValue(a)
-        bValue = getStatusValue(b)
-        break
-      case 'power_consumption':
-        aValue = a.power_consumption ?? 0
-        bValue = b.power_consumption ?? 0
-        break
-      default:
-        return 0
-    }
-
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
-    return 0
-  }) : sensors
-
-  const getRelativeTime = (dateString: string | null) => {
-    if (!dateString) return ''
-    const date = dayjs(dateString)
-    const now = dayjs()
-    const diffMinutes = now.diff(date, 'minute')
-
-    if (diffMinutes < 60) {
-      return `(${diffMinutes}分前)`
-    } else if (diffMinutes < 1440) {
-      const hours = Math.floor(diffMinutes / 60)
-      return `(${hours}時間前)`
-    } else {
-      const days = Math.floor(diffMinutes / 1440)
-      return `(${days}日前)`
-    }
-  }
-
-
-  return (
-    <>
-      <div className={`section ${styles.errorTableSection}`} id="sensor-details" data-testid="sensor-table">
-        <div className={styles.sectionHeader}>
-          <h2 className="title is-4">
-            <span className="icon"><i className="fas fa-cog"></i></span>
-            センサー詳細
-            <i
-              className={`fas fa-link ${styles.permalinkIcon}`}
-              onClick={() => copyPermalink('sensor-details')}
-              title="パーマリンクをコピー"
-            />
-          </h2>
+function AvailabilityCell({ percent }: { percent: number }) {
+    return (
+        <div className="avail-cell">
+            <div className={`avail-bar ${availClass(percent)}`}>
+                <span style={{ width: `${Math.min(percent, 100)}%` }} />
+            </div>
+            <span>{percent.toFixed(1)}%</span>
         </div>
-        <div className="table-container">
-          <table className="table is-striped is-hoverable is-fullwidth" data-testid="sensors-table">
-            <thead>
-              <tr>
-                <th
-                  onClick={() => handleSort('index')}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  # {getSortIcon('index')}
-                </th>
-                <th
-                  onClick={() => handleSort('name')}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  センサー名 {getSortIcon('name')}
-                </th>
-                <th
-                  onClick={() => handleSort('availability_total')}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  累計稼働率 {getSortIcon('availability_total')}
-                </th>
-                <th
-                  onClick={() => handleSort('availability_24h')}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  過去24時間 {getSortIcon('availability_24h')}
-                </th>
-                <th
-                  onClick={() => handleSort('power_consumption')}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  消費電力 {getSortIcon('power_consumption')}
-                </th>
-                <th
-                  onClick={() => handleSort('last_received')}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  最終受信 {getSortIcon('last_received')}
-                </th>
-                <th
-                  onClick={() => handleSort('status')}
-                  style={{ cursor: 'pointer', userSelect: 'none' }}
-                >
-                  状態{getSortIcon('status')}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedSensors.map((sensor, index) => (
-                <tr key={`${sensor.name}-${index}`}>
-                  <td>{sortKey === 'index' ? sensors.indexOf(sensor) + 1 : index + 1}</td>
-                  <td style={{ textAlign: 'left' }}>{sensor.name}</td>
-                  <td>
-                    <div className="is-flex is-align-items-center" style={{ height: '100%' }}>
-                      <progress
-                        className="progress"
-                        value={sensor.availability_total}
-                        max="100"
-                        style={{ height: '16px', width: '100px', marginBottom: 0, marginRight: '0.75rem' }}
-                      >
-                        {sensor.availability_total}%
-                      </progress>
-                      <span className="has-text-right" style={{ width: '60px', textAlign: 'right', display: 'inline-block' }}>
-                        <AnimatedNumber value={sensor.availability_total} decimals={1} />%
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="is-flex is-align-items-center" style={{ height: '100%' }}>
-                      <progress
-                        className="progress"
-                        value={sensor.availability_24h}
-                        max="100"
-                        style={{ height: '16px', width: '100px', marginBottom: 0, marginRight: '0.75rem' }}
-                      >
-                        {sensor.availability_24h}%
-                      </progress>
-                      <span className="has-text-right" style={{ width: '60px', textAlign: 'right', display: 'inline-block' }}>
-                        <AnimatedNumber value={sensor.availability_24h} decimals={1} />%
-                      </span>
-                    </div>
-                  </td>
-                  <td className="has-text-right">
-                    {sensor.power_consumption !== null ? (
-                      <>
-                        <AnimatedNumber value={sensor.power_consumption} decimals={0} useComma={true} /> W
-                      </>
-                    ) : (
-                      'N/A'
-                    )}
-                  </td>
-                  <td>
-                    {sensor.last_received ? (
-                      <>
-                        <span style={{ whiteSpace: 'nowrap' }}>{dayjs(sensor.last_received).format('M/D HH:mm:ss')}</span>
-                        <br className="is-hidden-desktop" />
-                        <span className="has-text-grey ml-1 ml-0-mobile" style={{ whiteSpace: 'nowrap' }}>
-                          {getRelativeTime(sensor.last_received)}
-                        </span>
-                      </>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td>
-                    <span className={`tag ${
-                      sensor.availability_24h >= 90 ? 'is-success' :
-                      sensor.availability_24h >= 70 ? 'is-warning' :
-                      'is-danger'
-                    }`}>
-                      {sensor.availability_24h >= 90 ? '正常' :
-                       sensor.availability_24h >= 70 ? '警告' :
-                       '異常'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div ref={notificationRef} className={styles.copyNotification}></div>
-    </>
-  )
+    );
+}
+
+export function SensorTable({ devices, nowSec }: SensorTableProps) {
+    const [sortKey, setSortKey] = useState<SortKey>("state");
+    const [ascending, setAscending] = useState(true);
+
+    const handleSort = (key: SortKey) => {
+        if (key === sortKey) {
+            setAscending(!ascending);
+        } else {
+            setSortKey(key);
+            setAscending(true);
+        }
+    };
+
+    const sorted = [...devices].sort((a, b) => {
+        let cmp = 0;
+        switch (sortKey) {
+            case "name":
+                cmp = a.name.localeCompare(b.name, "ja");
+                break;
+            case "state":
+                cmp = STATE_ORDER[a.state] - STATE_ORDER[b.state];
+                break;
+            case "availability_24h":
+                cmp = a.availability24h - b.availability24h;
+                break;
+            case "availability_total":
+                cmp = a.availabilityTotal - b.availabilityTotal;
+                break;
+            case "last_received":
+                cmp = (a.lastReceivedTs ?? 0) - (b.lastReceivedTs ?? 0);
+                break;
+        }
+        return ascending ? cmp : -cmp;
+    });
+
+    const arrow = (key: SortKey) =>
+        sortKey === key ? (ascending ? " ▲" : " ▼") : "";
+
+    return (
+        <section className="card">
+            <h2 className="card-title">
+                デバイス別の受信状態
+                <span className="card-note">見出しクリックで並べ替え</span>
+            </h2>
+            <div className="table-wrap">
+                <table className="data-table" data-testid="sensor-table">
+                    <thead>
+                        <tr>
+                            <th onClick={() => handleSort("name")}>デバイス{arrow("name")}</th>
+                            <th onClick={() => handleSort("state")}>状態{arrow("state")}</th>
+                            <th onClick={() => handleSort("availability_24h")}>
+                                受信率 (24時間){arrow("availability_24h")}
+                            </th>
+                            <th onClick={() => handleSort("availability_total")}>
+                                受信率 (累計){arrow("availability_total")}
+                            </th>
+                            <th onClick={() => handleSort("last_received")}>
+                                最終受信{arrow("last_received")}
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sorted.map((device) => {
+                            const age =
+                                device.lastReceivedTs !== null
+                                    ? nowSec - device.lastReceivedTs
+                                    : null;
+                            return (
+                                <tr key={device.name}>
+                                    <td>
+                                        {deviceIcon(device.name)} {device.name}
+                                    </td>
+                                    <td>
+                                        <span className={`chip ${CONN_STATE_CHIP[device.state]}`}>
+                                            {CONN_STATE_LABEL[device.state]}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <AvailabilityCell percent={device.availability24h} />
+                                    </td>
+                                    <td>
+                                        <AvailabilityCell percent={device.availabilityTotal} />
+                                    </td>
+                                    <td>
+                                        {device.lastReceivedTs !== null ? (
+                                            <>
+                                                {dayjs(device.lastReceivedTs * 1000).format(
+                                                    "M/D HH:mm",
+                                                )}
+                                                <span
+                                                    style={{
+                                                        color: "var(--muted)",
+                                                        marginLeft: "0.4rem",
+                                                    }}
+                                                >
+                                                    ({age !== null ? formatAgo(age) : ""})
+                                                </span>
+                                            </>
+                                        ) : (
+                                            "受信履歴なし"
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    );
 }

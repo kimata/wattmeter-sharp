@@ -1,214 +1,90 @@
-import { Bar } from 'react-chartjs-2'
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js'
-import { useRef, useEffect } from 'react'
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Tooltip,
+} from "chart.js";
+import { Bar } from "react-chartjs-2";
 
-import type { CommunicationErrorHistogram } from '../types'
-import styles from './CommunicationError.module.css'
+import { usePrefersDark } from "../hooks/usePrefersDark";
+import type { CommunicationErrorHistogram } from "../types";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-)
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
 interface CommunicationErrorChartProps {
-  histogram: CommunicationErrorHistogram
+    histogram: CommunicationErrorHistogram;
 }
 
+// 時間帯別の通信エラー発生ヒストグラム。
+// 「電子レンジ使用時に切れる」「深夜に切れる」など、切断の傾向をつかむための表示。
 export function CommunicationErrorChart({ histogram }: CommunicationErrorChartProps) {
-  const notificationRef = useRef<HTMLDivElement>(null)
+    const isDark = usePrefersDark();
+    const barColor = isDark ? "#3987e5" : "#2a78d6";
+    const textColor = isDark ? "#c3c2b7" : "#52514e";
+    const gridColor = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
 
-  useEffect(() => {
-    // ページ読み込み時にハッシュがあれば該当要素にスクロール
-    if (window.location.hash === '#communication-error-chart') {
-      const element = document.getElementById('communication-error-chart')
-      if (element) {
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
-        }, 500)
-      }
-    }
-  }, [])
-
-  const copyPermalink = (elementId: string) => {
-    const currentUrl = window.location.origin + window.location.pathname
-    const permalink = currentUrl + '#' + elementId
-
-    // Clipboard APIが利用可能かチェック
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      navigator.clipboard.writeText(permalink).then(() => {
-        showCopyNotification('パーマリンクをコピーしました')
-        window.history.pushState(null, '', '#' + elementId)
-      }).catch(() => {
-        // Clipboard APIが失敗した場合のフォールバック
-        fallbackCopyToClipboard(permalink, elementId)
-      })
-    } else {
-      // Clipboard APIが利用できない場合のフォールバック
-      fallbackCopyToClipboard(permalink, elementId)
-    }
-  }
-
-  const fallbackCopyToClipboard = (text: string, elementId: string) => {
-    try {
-      const textArea = document.createElement('textarea')
-      textArea.value = text
-      textArea.style.position = 'fixed'
-      textArea.style.left = '-999999px'
-      textArea.style.top = '-999999px'
-      document.body.appendChild(textArea)
-      textArea.focus()
-      textArea.select()
-      const successful = document.execCommand('copy')
-      document.body.removeChild(textArea)
-
-      if (successful) {
-        showCopyNotification('パーマリンクをコピーしました')
-      } else {
-        showCopyNotification('コピーに失敗しました')
-      }
-      window.history.pushState(null, '', '#' + elementId)
-    } catch (err) {
-      console.error('コピーに失敗しました:', err)
-      showCopyNotification('コピーに失敗しました')
-      window.history.pushState(null, '', '#' + elementId)
-    }
-  }
-
-  const showCopyNotification = (message: string) => {
-    if (!notificationRef.current) return
-
-    notificationRef.current.textContent = message
-    notificationRef.current.classList.add(styles.show)
-
-    setTimeout(() => {
-      notificationRef.current?.classList.remove(styles.show)
-    }, 3000)
-  }
-  const data = {
-    labels: histogram.bin_labels,
-    datasets: [
-      {
-        label: '通信エラー件数',
-        data: histogram.bins,
-        backgroundColor: 'rgba(220, 53, 69, 0.6)',
-        borderColor: 'rgba(220, 53, 69, 1)',
-        borderWidth: 1,
-        // バー間隔を完全に削除
-        categoryPercentage: 1.0,
-        barPercentage: 1.0,
-      },
-    ],
-  }
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-        labels: {
-          font: {
-            family: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif',
-            size: 14
-          }
-        }
-      },
-      title: {
-        display: false,
-      },
-    },
-    scales: {
-      x: {
-        // バー間隔を完全に削除
-        categoryPercentage: 1.0,
-        barPercentage: 1.0,
-        // グリッド線のオフセットを調整
-        offset: false,
-        title: {
-          display: true,
-          text: '時間帯',
-          font: {
-            family: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif',
-            size: 14
-          }
-        },
-        ticks: {
-          maxTicksLimit: 12, // 2時間刻みで表示
-          font: {
-            family: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif',
-            size: 14
-          },
-          callback: function(value: string | number) {
-            const index = Number(value)
-            if (index % 4 === 0) {  // 2時間ごとに表示
-              const label = histogram.bin_labels[index]
-              if (label) {
-                // "00:00", "01:30" のような形式を "0時", "1時" に変換
-                const hourMatch = label.match(/^(\d{1,2}):/);
-                if (hourMatch) {
-                  return `${parseInt(hourMatch[1])}時`
-                }
-              }
-              return label
-            }
-            return ''
-          }
-        }
-      },
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'エラー件数',
-          font: {
-            family: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif',
-            size: 14
-          }
-        },
-        ticks: {
-          stepSize: 1,
-          font: {
-            family: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP", "Yu Gothic", sans-serif',
-            size: 14
-          }
-        },
-      },
-    },
-  }
-
-  return (
-    <>
-      <div className={`section ${styles.chartSection}`} id="communication-error-chart">
-        <div className={styles.sectionHeader}>
-          <h2 className="title is-4">
-            <span className="icon"><i className="fas fa-chart-bar"></i></span>
-            通信エラー発生状況（過去1ヶ月、合計: {histogram.total_errors}件）
-            <i
-              className={`fas fa-link ${styles.permalinkIcon}`}
-              onClick={() => copyPermalink('communication-error-chart')}
-              title="パーマリンクをコピー"
-            />
-          </h2>
-        </div>
-        <div className="box">
-          <div style={{ position: 'relative', height: '400px', width: '100%' }}>
-            <Bar data={data} options={options} />
-          </div>
-        </div>
-      </div>
-      <div ref={notificationRef} className={styles.copyNotification}></div>
-    </>
-  )
+    return (
+        <section className="card" data-testid="error-chart">
+            <h2 className="card-title">
+                切断が起きやすい時間帯
+                <span className="card-note">
+                    過去30日 / 30分刻み / 合計 {histogram.total_errors.toLocaleString("ja-JP")} 回
+                </span>
+            </h2>
+            <div className="chart-container small">
+                <Bar
+                    data={{
+                        labels: histogram.bin_labels,
+                        datasets: [
+                            {
+                                label: "通信エラー",
+                                data: histogram.bins,
+                                backgroundColor: barColor,
+                                borderRadius: 3,
+                                barPercentage: 0.9,
+                                categoryPercentage: 0.9,
+                            },
+                        ],
+                    }}
+                    options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: { duration: 300 },
+                        // リサイズ時はアニメーションなしで即時再描画する
+                        transitions: { resize: { animation: { duration: 0 } } },
+                        scales: {
+                            x: {
+                                ticks: {
+                                    color: textColor,
+                                    maxTicksLimit: 12,
+                                    maxRotation: 0,
+                                    font: { size: 11 },
+                                },
+                                grid: { display: false },
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    color: textColor,
+                                    precision: 0,
+                                    font: { size: 11 },
+                                },
+                                grid: { color: gridColor },
+                            },
+                        },
+                        plugins: {
+                            // 単一系列のため凡例は表示しない
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: (ctx) => ` ${ctx.parsed.y} 回`,
+                                },
+                            },
+                        },
+                    }}
+                />
+            </div>
+        </section>
+    );
 }

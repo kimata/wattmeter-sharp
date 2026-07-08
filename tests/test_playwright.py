@@ -47,109 +47,122 @@ def get_app_url(host, port):
 
 
 ######################################################################
-def test_sensor_monitoring_app(page, host, port):
-    """センサー監視アプリの基本機能をテストします。"""
+def test_power_dashboard(page, host, port):
+    """電力タブ (メイン画面) の基本構成をテストします。"""
     page.goto(get_app_url(host, port), wait_until="domcontentloaded")
 
     # ページタイトルとメイン要素の確認
-    expect(page.get_by_test_id("app-title")).to_have_text("SHARP HEMS センサー稼働状態")
+    expect(page.get_by_test_id("app-title")).to_contain_text("おうち電力モニター")
     expect(page.get_by_test_id("app")).to_have_count(1)
 
-    # データ情報の確認
-    expect(page.get_by_test_id("data-info")).to_have_count(1)
-    expect(page.get_by_test_id("data-info")).to_contain_text("データ収集開始日")
+    # ヒーロー (現在の合計消費電力)
+    expect(page.get_by_test_id("power-hero")).to_be_visible()
+    expect(page.get_by_test_id("total-watt")).to_contain_text("W")
+    expect(page.get_by_test_id("conn-summary")).to_contain_text("/")
 
-    # チャートの確認
-    expect(page.get_by_test_id("availability-chart")).to_have_count(1)
+    # 電力推移チャートと期間セレクタ
+    expect(page.get_by_test_id("trend-chart")).to_be_visible()
+    for key in ["3h", "24h", "7d", "30d"]:
+        expect(page.get_by_test_id(f"range-{key}")).to_be_visible()
 
-    # テーブルの確認
-    expect(page.get_by_test_id("sensor-table")).to_have_count(1)
-    expect(page.get_by_test_id("sensors-table")).to_have_count(1)
+    # デバイス別カード
+    expect(page.get_by_test_id("device-grid")).to_be_visible()
+    expect(page.get_by_test_id("device-card").first).to_be_visible()
 
-    # フッターの確認
+    # 電力量ランキング
+    expect(page.get_by_test_id("energy-ranking")).to_be_visible()
+
+    # フッター
     expect(page.get_by_test_id("footer")).to_have_count(1)
 
-    # エラー要素がないことを確認
-    expect(page.get_by_test_id("error")).to_have_count(0)
+    # エラーバナーがないことを確認
+    expect(page.get_by_test_id("error-banner")).to_have_count(0)
 
 
-def test_sensor_table_columns(page, host, port):
-    """センサーテーブルの列構成をテストします。"""
+def test_range_selector(page, host, port):
+    """電力推移チャートの期間切り替えをテストします。"""
     page.goto(get_app_url(host, port), wait_until="domcontentloaded")
 
-    # テーブルヘッダーの確認
-    table = page.get_by_test_id("sensors-table")
+    expect(page.get_by_test_id("range-24h")).to_have_class(re.compile(r"active"))
+
+    page.get_by_test_id("range-3h").click()
+    expect(page.get_by_test_id("range-3h")).to_have_class(re.compile(r"active"))
+    expect(page.get_by_test_id("range-24h")).not_to_have_class(re.compile(r"active"))
+
+    # 切り替え後もチャートカードが表示されたまま
+    expect(page.get_by_test_id("trend-chart")).to_be_visible()
+
+
+def test_connection_status_tab(page, host, port):
+    """接続状態タブの構成をテストします。"""
+    page.goto(get_app_url(host, port), wait_until="domcontentloaded")
+
+    page.get_by_test_id("tab-connection").click()
+    expect(page.get_by_test_id("connection-status")).to_be_visible()
+
+    # 受信状態テーブル
+    table = page.get_by_test_id("sensor-table")
     expect(table).to_be_visible()
 
-    # 列ヘッダーの存在確認
-    expect(table.locator("th:nth-child(1)")).to_contain_text("#")
-    expect(table.locator("th:nth-child(2)")).to_contain_text("センサー名")
-    expect(table.locator("th:nth-child(3)")).to_contain_text("累計稼働率")
-    expect(table.locator("th:nth-child(4)")).to_contain_text("過去24時間")
-    expect(table.locator("th:nth-child(5)")).to_contain_text("消費電力")
-    expect(table.locator("th:nth-child(6)")).to_contain_text("最終受信")
-    expect(table.locator("th:nth-child(7)")).to_contain_text("状態")
+    expect(table.locator("th").nth(0)).to_contain_text("デバイス")
+    expect(table.locator("th").nth(1)).to_contain_text("状態")
+    expect(table.locator("th").nth(2)).to_contain_text("受信率 (24時間)")
+    expect(table.locator("th").nth(3)).to_contain_text("受信率 (累計)")
+    expect(table.locator("th").nth(4)).to_contain_text("最終受信")
 
-
-def test_sensor_table_sorting(page, host, port):
-    """センサーテーブルのソート機能をテストします。"""
-    page.goto(get_app_url(host, port), wait_until="domcontentloaded")
-
-    table = page.get_by_test_id("sensors-table")
-
-    # センサー名でソート
-    sensor_name_header = table.locator("th").filter(has_text="センサー名")
-    sensor_name_header.click()
-
-    # ソートアイコンが表示されることを確認
-    expect(sensor_name_header).to_contain_text("▼")  # 降順ソート
-
-    # 再度クリックで昇順ソート
-    sensor_name_header.click()
-    expect(sensor_name_header).to_contain_text("▲")  # 昇順ソート
-
-
-def test_sensor_table_data_format(page, host, port):
-    """センサーテーブルのデータ形式をテストします。"""
-    page.goto(get_app_url(host, port), wait_until="domcontentloaded")
-
-    table = page.get_by_test_id("sensors-table")
-
-    # テーブルにデータ行があることを確認
     rows = table.locator("tbody tr")
     expect(rows.first).to_be_visible()
 
-    # 最初のデータ行をチェック
     if rows.count() > 0:
         first_row = rows.first
-
-        # 各列のデータ形式を確認
         cells = first_row.locator("td")
 
-        # インデックス番号（数字）
-        expect(cells.nth(0)).to_contain_text(re.compile(r"^\d+$"))
+        # デバイス名 (文字列)
+        expect(cells.nth(0)).not_to_be_empty()
 
-        # センサー名（文字列）
-        expect(cells.nth(1)).not_to_be_empty()
+        # 状態 (チップ)
+        expect(cells.nth(1).locator(".chip")).to_contain_text(re.compile(r"^(接続中|不安定|切断|長期切断)$"))
 
-        # 稼働率（%付きの数値）
+        # 受信率 (%付きの数値)
         expect(cells.nth(2)).to_contain_text("%")
         expect(cells.nth(3)).to_contain_text("%")
 
-        # 消費電力（W単位またはN/A）
-        power_cell = cells.nth(4)
-        expect(power_cell).to_contain_text(re.compile(r"^(\d{1,3}(,\d{3})*\s*W|N/A)$"))
+    # 切断ヒストグラムと切断ログ
+    expect(page.get_by_test_id("error-chart")).to_be_visible()
+    expect(page.get_by_test_id("error-table")).to_be_visible()
 
-        # 最終受信（日付形式または-）
-        last_received_cell = cells.nth(5)
-        expect(last_received_cell).to_contain_text(
-            re.compile(r"^(\d{1,2}/\d{1,2}\s+\d{2}:\d{2}:\d{2}.*|-|)$")
-        )
 
-        # 状態（タグ）
-        status_cell = cells.nth(6)
-        expect(status_cell.locator(".tag")).to_have_count(1)
-        expect(status_cell.locator(".tag")).to_contain_text(re.compile(r"^(正常|警告|異常)$"))
+def test_sensor_table_sorting(page, host, port):
+    """受信状態テーブルのソート機能をテストします。"""
+    page.goto(get_app_url(host, port), wait_until="domcontentloaded")
+
+    page.get_by_test_id("tab-connection").click()
+    table = page.get_by_test_id("sensor-table")
+
+    name_header = table.locator("th").filter(has_text="デバイス")
+    name_header.click()
+    expect(name_header).to_contain_text("▲")  # 昇順ソート
+
+    name_header.click()
+    expect(name_header).to_contain_text("▼")  # 降順ソート
+
+
+def test_tab_switching(page, host, port):
+    """タブ切り替えをテストします。"""
+    page.goto(get_app_url(host, port), wait_until="domcontentloaded")
+
+    # 初期状態は電力タブ
+    expect(page.get_by_test_id("tab-power")).to_have_class(re.compile(r"active"))
+    expect(page.get_by_test_id("power-hero")).to_be_visible()
+
+    # 接続状態タブへ
+    page.get_by_test_id("tab-connection").click()
+    expect(page.get_by_test_id("tab-connection")).to_have_class(re.compile(r"active"))
+    expect(page.get_by_test_id("connection-status")).to_be_visible()
+
+    # 電力タブへ戻る
+    page.get_by_test_id("tab-power").click()
+    expect(page.get_by_test_id("power-hero")).to_be_visible()
 
 
 def test_error_handling(page, host, port):
@@ -173,9 +186,9 @@ def test_responsive_design(page, host, port):
     # タブレットサイズ
     page.set_viewport_size({"width": 768, "height": 1024})
     expect(page.get_by_test_id("app")).to_be_visible()
-    expect(page.get_by_test_id("sensor-table")).to_be_visible()
+    expect(page.get_by_test_id("device-grid")).to_be_visible()
 
     # モバイルサイズ
     page.set_viewport_size({"width": 375, "height": 667})
     expect(page.get_by_test_id("app")).to_be_visible()
-    expect(page.get_by_test_id("sensor-table")).to_be_visible()
+    expect(page.get_by_test_id("device-grid")).to_be_visible()

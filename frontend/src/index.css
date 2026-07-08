@@ -1,85 +1,734 @@
+/* ============================================================
+   おうち電力モニター デザインシステム
+   ライト / ダーク両対応。カラーパレットは CVD 検証済みの 8 色。
+   ============================================================ */
+
 :root {
-    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-    line-height: 1.5;
-    font-weight: 400;
-
     color-scheme: light dark;
-    color: rgba(255, 255, 255, 0.87);
-    background-color: #242424;
 
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    --bg: #f6f6f4;
+    --surface: #fcfcfb;
+    --surface-2: #efeeea;
+    --text: #0b0b0b;
+    --text-2: #52514e;
+    --muted: #85847e;
+    --border: #e3e2dd;
+    --accent: #2a78d6;
+    --accent-soft: #eef4fc;
+
+    --good: #008300;
+    --good-bg: #ecf8f3;
+    --warn: #b97e00;
+    --warn-bg: #fdf6e6;
+    --bad: #e34948;
+    --bad-bg: #fdf0f0;
+
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px rgb(0 0 0 / 0.04);
+
+    font-family:
+        -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+        "Noto Sans JP", Meiryo, sans-serif;
+    font-feature-settings: "palt";
+    line-height: 1.6;
 }
 
-a {
-    font-weight: 500;
-    color: #646cff;
-    text-decoration: inherit;
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #131312;
+        --surface: #1a1a19;
+        --surface-2: #262623;
+        --text: #ffffff;
+        --text-2: #c3c2b7;
+        --muted: #8f8e86;
+        --border: #34332f;
+        --accent: #3987e5;
+        --accent-soft: #18222e;
+
+        --good: #1baf7a;
+        --good-bg: #16241e;
+        --warn: #c98500;
+        --warn-bg: #292115;
+        --bad: #e66767;
+        --bad-bg: #2a1c1c;
+
+        --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 12px rgb(0 0 0 / 0.25);
+    }
 }
-a:hover {
-    color: #535bf2;
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
 }
 
 body {
-    margin: 0;
-    display: flex;
-    place-items: center;
-    min-width: 320px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    -webkit-font-smoothing: antialiased;
+}
+
+#root {
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
-h1 {
-    font-size: 3.2em;
-    line-height: 1.1;
+/* ---------- ヘッダー ---------- */
+
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
 }
 
-button {
-    border-radius: 8px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
+.app-header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.6rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.app-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.app-title .app-subtitle {
+    font-size: 0.72rem;
     font-weight: 500;
-    font-family: inherit;
-    background-color: #1a1a1a;
+    color: var(--muted);
+}
+
+.tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-left: auto;
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 3px;
+}
+
+.tab {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--text-2);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    padding: 0.35rem 0.9rem;
+    border-radius: 8px;
     cursor: pointer;
-    transition: border-color 0.25s;
-}
-button:hover {
-    border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-    outline: 4px auto -webkit-focus-ring-color;
+    position: relative;
+    transition:
+        background 0.15s,
+        color 0.15s;
 }
 
-/* Skeleton animation */
-@keyframes skeleton-loading {
-    0% {
-        background-position: -200px 0;
-    }
-    100% {
-        background-position: calc(200px + 100%) 0;
+.tab:hover {
+    color: var(--text);
+}
+
+.tab.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
+}
+
+.tab .tab-alert {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--bad);
+}
+
+/* ---------- レイアウト ---------- */
+
+.app-main {
+    flex: 1;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem 1rem 3rem;
+}
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 1rem 1.2rem;
+    margin-bottom: 1rem;
+}
+
+.card-title {
+    margin: 0 0 0.2rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.card-note {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.error-banner {
+    background: var(--bad-bg);
+    color: var(--bad);
+    border: 1px solid color-mix(in srgb, var(--bad) 30%, transparent);
+    border-radius: 10px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+/* ---------- ヒーロー ---------- */
+
+.hero {
+    display: flex;
+    align-items: stretch;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.hero-main {
+    flex: 1 1 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.hero-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-2);
+}
+
+.hero-value {
+    font-size: 3.4rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.hero-value .unit {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-2);
+    margin-left: 0.25rem;
+}
+
+.hero-sub {
+    font-size: 0.78rem;
+    color: var(--muted);
+}
+
+.hero-stats {
+    flex: 2 1 380px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.7rem;
+    align-content: center;
+}
+
+.stat-tile {
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 0.7rem 0.9rem;
+}
+
+.stat-tile .stat-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-2);
+}
+
+.stat-tile .stat-value {
+    font-size: 1.45rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.3;
+}
+
+.stat-tile .stat-value .unit {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-left: 0.15rem;
+}
+
+.stat-tile .stat-note {
+    font-size: 0.7rem;
+    color: var(--muted);
+}
+
+/* ---------- 期間セレクタ ---------- */
+
+.range-selector {
+    display: inline-flex;
+    gap: 0.25rem;
+    background: var(--surface-2);
+    border-radius: 9px;
+    padding: 3px;
+    margin-left: auto;
+}
+
+.range-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--text-2);
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.22rem 0.65rem;
+    border-radius: 7px;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+
+.range-btn:hover {
+    color: var(--text);
+}
+
+.range-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow);
+}
+
+/* ---------- チャート ---------- */
+
+.chart-container {
+    position: relative;
+    height: 320px;
+    margin-top: 0.6rem;
+}
+
+.chart-container.small {
+    height: 220px;
+}
+
+.chart-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: var(--muted);
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    border-radius: 10px;
+}
+
+/* ---------- デバイスカード ---------- */
+
+.device-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 0.7rem;
+    margin-top: 0.6rem;
+}
+
+.device-card {
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 0.7rem 0.85rem 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 0;
+}
+
+.device-card.offline {
+    opacity: 0.62;
+}
+
+.device-card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.device-icon {
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+
+.device-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.device-watt {
+    font-size: 1.55rem;
+    font-weight: 800;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.device-watt .unit {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-left: 0.15rem;
+}
+
+.device-watt.na {
+    color: var(--muted);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.share-bar {
+    height: 5px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--border) 65%, transparent);
+    overflow: hidden;
+}
+
+.share-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width 0.5s ease;
+}
+
+.device-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.device-spark {
+    margin-top: 0.15rem;
+    color: var(--accent);
+}
+
+/* ---------- ランキング ---------- */
+
+.ranking {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-top: 0.7rem;
+}
+
+.ranking-row {
+    display: grid;
+    grid-template-columns: 1.4rem 9.5rem 1fr auto;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.82rem;
+}
+
+.ranking-rank {
+    color: var(--muted);
+    font-weight: 700;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.ranking-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 600;
+    color: var(--text-2);
+}
+
+.ranking-bar {
+    height: 14px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--border) 55%, transparent);
+    overflow: hidden;
+}
+
+.ranking-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 4px;
+    background: var(--accent);
+    transition: width 0.5s ease;
+}
+
+.ranking-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ranking-value .sub {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 0.72rem;
+    margin-left: 0.3rem;
+}
+
+/* ---------- テーブル ---------- */
+
+.table-wrap {
+    overflow-x: auto;
+    margin-top: 0.6rem;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+    white-space: nowrap;
+}
+
+.data-table th {
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    padding: 0.4rem 0.7rem;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+}
+
+.data-table th.plain {
+    cursor: default;
+}
+
+.data-table td {
+    padding: 0.45rem 0.7rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+    font-variant-numeric: tabular-nums;
+}
+
+.data-table tbody tr:hover {
+    background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+}
+
+.avail-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 120px;
+}
+
+.avail-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: color-mix(in srgb, var(--border) 65%, transparent);
+    overflow: hidden;
+    min-width: 50px;
+}
+
+.avail-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+}
+
+.avail-bar.good > span {
+    background: var(--good);
+}
+
+.avail-bar.warn > span {
+    background: var(--warn);
+}
+
+.avail-bar.bad > span {
+    background: var(--bad);
+}
+
+/* ---------- バッジ ---------- */
+
+.chip {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.08rem 0.55rem;
+    border-radius: 999px;
+}
+
+.chip.good {
+    color: var(--good);
+    background: var(--good-bg);
+}
+
+.chip.warn {
+    color: var(--warn);
+    background: var(--warn-bg);
+}
+
+.chip.bad {
+    color: var(--bad);
+    background: var(--bad-bg);
+}
+
+.chip.neutral {
+    color: var(--text-2);
+    background: var(--surface-2);
+}
+
+/* ---------- サマリータイル (システム状態) ---------- */
+
+.summary-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.7rem;
+}
+
+.summary-tile {
+    border-radius: 12px;
+    padding: 0.7rem 0.9rem;
+    background: var(--surface-2);
+}
+
+.summary-tile .num {
+    font-size: 1.7rem;
+    font-weight: 800;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.summary-tile .label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-2);
+}
+
+.summary-tile.good .num {
+    color: var(--good);
+}
+
+.summary-tile.warn .num {
+    color: var(--warn);
+}
+
+.summary-tile.bad .num {
+    color: var(--bad);
+}
+
+/* ---------- スケルトン ---------- */
+
+.skeleton {
+    border-radius: 12px;
+    background: linear-gradient(
+        100deg,
+        var(--surface-2) 40%,
+        color-mix(in srgb, var(--surface-2) 50%, var(--surface)) 50%,
+        var(--surface-2) 60%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite linear;
+}
+
+@keyframes shimmer {
+    to {
+        background-position: -200% 0;
     }
 }
 
-/* Japanese font family */
-.japanese-font {
-    font-family:
-        "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans CJK JP",
-        "Yu Gothic", sans-serif;
+/* ---------- ボタン ---------- */
+
+.link-btn {
+    appearance: none;
+    border: none;
+    background: none;
+    color: var(--accent);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.3rem 0;
 }
 
-@media (prefers-color-scheme: light) {
-    :root {
-        color: #213547;
-        background-color: #ffffff;
+.link-btn:hover {
+    text-decoration: underline;
+}
+
+/* ---------- フッター ---------- */
+
+.app-footer {
+    border-top: 1px solid var(--border);
+    padding: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
+    color: var(--muted);
+}
+
+.app-footer a {
+    color: var(--text-2);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.app-footer a:hover {
+    text-decoration: underline;
+}
+
+/* ---------- レスポンシブ ---------- */
+
+@media (max-width: 640px) {
+    .hero-value {
+        font-size: 2.6rem;
     }
-    a:hover {
-        color: #747bff;
+
+    .app-main {
+        padding: 0.7rem 0.7rem 2rem;
     }
-    button {
-        background-color: #f9f9f9;
+
+    .card {
+        padding: 0.85rem 0.9rem;
+    }
+
+    .ranking-row {
+        grid-template-columns: 1.2rem 6.5rem 1fr auto;
+        gap: 0.4rem;
+    }
+
+    .chart-container {
+        height: 260px;
     }
 }

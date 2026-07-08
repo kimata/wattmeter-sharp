@@ -3,12 +3,38 @@ export interface SensorData {
     availability_total: number;
     availability_24h: number;
     last_received: string | null;
-    power_consumption: number | null;
+    last_received_ts: number | null;
 }
 
 export interface ApiResponse {
     start_date: string;
     sensors: SensorData[];
+}
+
+export interface PowerDevice {
+    name: string;
+    watt: number | null;
+    time: number | null;
+}
+
+export interface PowerCurrentResponse {
+    total: number;
+    devices: PowerDevice[];
+    updated_at: number;
+}
+
+export interface PowerSeries {
+    name: string;
+    values: (number | null)[];
+    energy_wh: number | null;
+}
+
+export interface PowerHistoryResponse {
+    range: string;
+    every_min: number;
+    times: number[];
+    series: PowerSeries[];
+    updated_at: number;
 }
 
 export interface CommunicationError {
