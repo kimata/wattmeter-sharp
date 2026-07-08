@@ -20,6 +20,7 @@ import flask
 import flask_cors
 import my_lib.config
 import my_lib.logger
+import my_lib.proc_util
 
 SCHEMA_CONFIG = "config.schema"
 
