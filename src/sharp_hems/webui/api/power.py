@@ -14,8 +14,10 @@ import sharp_hems.device
 
 blueprint = flask.Blueprint("webapi-power", __name__)
 
-# NOTE: 現在値はセンサーの送信周期 (約6分) の 5 周期分まで遡って探す
-CURRENT_LOOKBACK = "-30m"
+# NOTE: センサーの送信周期は約 6 分。10 分以内の最新値を「現在の電力」として扱う
+CURRENT_LOOKBACK = "-10m"
+# 履歴の欠損スロットを直近値で補完する最大ギャップ (秒)。これを超えたら実際の欠測として扱う
+FILL_MAX_GAP_SEC = 600
 CURRENT_CACHE_SEC = 30
 HISTORY_CACHE_SEC = 240
 
@@ -181,6 +183,28 @@ def power_history():
         flask.abort(500, f"Failed to get power history: {e!s}")
 
 
+def _fill_short_gaps(times, values, every_min):
+    """
+    欠損スロットを直近の実データで前方補完する (in-place)。
+
+    センサーは約 6 分周期でしか送信しないため、集計ウィンドウの末尾
+    (直近スロット) はデータが届いていないことが多く、そのままだと
+    グラフの右端が 0 W に落ちてしまう。直近の実データからのギャップが
+    max(FILL_MAX_GAP_SEC, 1 スロット) 以内であればその値で補完し、
+    それより古い場合は実際の欠測 (切断) として None のまま残す。
+    """
+    max_gap = max(FILL_MAX_GAP_SEC, every_min * 60)
+    last_time = None
+    last_value = None
+
+    for i, t in enumerate(times):
+        if values[i] is not None:
+            last_time = t
+            last_value = values[i]
+        elif last_time is not None and t - last_time <= max_gap:
+            values[i] = last_value
+
+
 def _build_history_response(range_key, range_config, sensor_names, results):
     """取得結果を、共通の時刻軸に揃えた JSON 応答に組み立てる。"""
     # NOTE: create_empty=True でも系列間で時刻が完全一致する保証はないため、
@@ -210,6 +234,8 @@ def _build_history_response(range_key, range_config, sensor_names, results):
                     values[index] = round(float(v), 1)
                 energy_wh += float(v) * interval_hour
             energy_wh = round(energy_wh, 1)
+
+            _fill_short_gaps(times, values, range_config["every_min"])
 
         series.append({"name": name, "values": values, "energy_wh": energy_wh})
 
