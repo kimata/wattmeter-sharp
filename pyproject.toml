@@ -43,6 +43,10 @@ build-backend = "hatchling.build"
 [tool.hatch.version]
 source = "vcs"
 
+# NOTE: Docker ビルドなど .git が存在しない環境向けのフォールバック
+[tool.hatch.version.raw-options]
+fallback_version = "0.0.0"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/sharp_hems"]
 
