@@ -50,7 +50,8 @@ export function CommunicationErrorChart({ histogram }: CommunicationErrorChartPr
                     options={{
                         responsive: true,
                         maintainAspectRatio: false,
-                        animation: { duration: 300 },
+                        // データ更新時に滑らかにモーフィングさせる
+                        animation: { duration: 600, easing: "easeOutQuart" },
                         // リサイズ時はアニメーションなしで即時再描画する
                         transitions: { resize: { animation: { duration: 0 } } },
                         scales: {

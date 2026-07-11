@@ -83,18 +83,3 @@ export function formatAgo(sec: number): string {
     if (sec < 60) return "たった今";
     return `${formatDuration(sec)}前`;
 }
-
-export function formatWatt(watt: number): string {
-    return Math.round(watt).toLocaleString("ja-JP");
-}
-
-export function formatKwh(wh: number): string {
-    const kwh = wh / 1000;
-    return kwh >= 100
-        ? Math.round(kwh).toLocaleString("ja-JP")
-        : kwh.toFixed(1);
-}
-
-export function formatYen(yen: number): string {
-    return Math.round(yen).toLocaleString("ja-JP");
-}

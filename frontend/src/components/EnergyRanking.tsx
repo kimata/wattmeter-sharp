@@ -1,4 +1,5 @@
-import { deviceIcon, formatKwh, formatYen } from "../utils/device";
+import { AnimatedNumber } from "./common/AnimatedNumber";
+import { deviceIcon } from "../utils/device";
 import { ELECTRICITY_RATE_YEN_PER_KWH } from "../config/constants";
 import type { PowerHistoryResponse } from "../types";
 
@@ -46,8 +47,21 @@ export function EnergyRanking({ history, rangeLabel }: EnergyRankingProps) {
                                 <span style={{ width: `${(wh / maxWh) * 100}%` }} />
                             </div>
                             <span className="ranking-value">
-                                {formatKwh(wh)} kWh
-                                <span className="sub">¥{formatYen(yen)}</span>
+                                <AnimatedNumber
+                                    value={wh / 1000}
+                                    decimals={wh >= 100_000 ? 0 : 1}
+                                    duration={1.2}
+                                />{" "}
+                                kWh
+                                <span className="sub">
+                                    ¥
+                                    <AnimatedNumber
+                                        value={yen}
+                                        decimals={0}
+                                        useComma={true}
+                                        duration={1.2}
+                                    />
+                                </span>
                             </span>
                         </div>
                     );

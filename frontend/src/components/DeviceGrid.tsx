@@ -1,7 +1,7 @@
 import { Sparkline } from "./Sparkline";
+import { AnimatedNumber } from "./common/AnimatedNumber";
 import {
     deviceIcon,
-    formatWatt,
     formatDuration,
     formatAgo,
     CONN_STATE_LABEL,
@@ -12,13 +12,14 @@ import type { DeviceView } from "../App";
 interface DeviceGridProps {
     devices: DeviceView[];
     nowSec: number;
+    sparkRefreshKey: number;
 }
 
 // NOTE: 不安定でも受信できている間は電力順に混ぜて表示し、
 // 受信が途絶えているデバイスだけ末尾にまとめる
 const STATE_ORDER = { online: 0, unstable: 0, disconnected: 1, lost: 2 };
 
-export function DeviceGrid({ devices, nowSec }: DeviceGridProps) {
+export function DeviceGrid({ devices, nowSec, sparkRefreshKey }: DeviceGridProps) {
     const total = devices.reduce((sum, d) => sum + (d.watt ?? 0), 0);
 
     const sorted = [...devices].sort((a, b) => {
@@ -76,7 +77,16 @@ export function DeviceGrid({ devices, nowSec }: DeviceGridProps) {
                                 </div>
                             ) : (
                                 <div className="device-watt">
-                                    {device.watt !== null ? formatWatt(device.watt) : "–"}
+                                    {device.watt !== null ? (
+                                        <AnimatedNumber
+                                            value={Math.round(device.watt)}
+                                            decimals={0}
+                                            useComma={true}
+                                            duration={1.2}
+                                        />
+                                    ) : (
+                                        "–"
+                                    )}
                                     <span className="unit">W</span>
                                 </div>
                             )}
@@ -89,7 +99,9 @@ export function DeviceGrid({ devices, nowSec }: DeviceGridProps) {
                                 />
                             </div>
 
-                            {device.spark && <Sparkline values={device.spark} />}
+                            {device.spark && (
+                                <Sparkline values={device.spark} refreshKey={sparkRefreshKey} />
+                            )}
 
                             <div className="device-foot">
                                 <span>{share !== null ? `シェア ${share.toFixed(1)}%` : " "}</span>

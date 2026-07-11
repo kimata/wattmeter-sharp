@@ -1,6 +1,6 @@
 import { AnimatedNumber } from "./common/AnimatedNumber";
 import { ELECTRICITY_RATE_YEN_PER_KWH } from "../config/constants";
-import { formatKwh, formatYen, CONN_STATE_LABEL } from "../utils/device";
+import { CONN_STATE_LABEL } from "../utils/device";
 import type { DeviceView } from "../App";
 import type { PowerHistoryResponse } from "../types";
 
@@ -47,7 +47,9 @@ export function PowerNow({ devices, history, rangeLabel, updatedAt }: PowerNowPr
                     </div>
                     {updatedAt && (
                         <div className="hero-sub">
+                            <span className="live-dot" />
                             {new Date(updatedAt * 1000).toLocaleTimeString("ja-JP")} 更新
+                            (1分毎に自動更新)
                         </div>
                     )}
                 </div>
@@ -55,14 +57,33 @@ export function PowerNow({ devices, history, rangeLabel, updatedAt }: PowerNowPr
                     <div className="stat-tile">
                         <div className="stat-label">使用量 ({rangeLabel})</div>
                         <div className="stat-value">
-                            {totalEnergyWh !== null ? formatKwh(totalEnergyWh) : "–"}
+                            {totalEnergyWh !== null ? (
+                                <AnimatedNumber
+                                    value={totalEnergyWh / 1000}
+                                    decimals={totalEnergyWh >= 100_000 ? 0 : 1}
+                                    useComma={true}
+                                />
+                            ) : (
+                                "–"
+                            )}
                             <span className="unit">kWh</span>
                         </div>
                     </div>
                     <div className="stat-tile">
                         <div className="stat-label">電気代の目安 ({rangeLabel})</div>
                         <div className="stat-value">
-                            {estimatedYen !== null ? `¥${formatYen(estimatedYen)}` : "–"}
+                            {estimatedYen !== null ? (
+                                <>
+                                    ¥
+                                    <AnimatedNumber
+                                        value={estimatedYen}
+                                        decimals={0}
+                                        useComma={true}
+                                    />
+                                </>
+                            ) : (
+                                "–"
+                            )}
                         </div>
                         <div className="stat-note">
                             {ELECTRICITY_RATE_YEN_PER_KWH}円/kWh で計算

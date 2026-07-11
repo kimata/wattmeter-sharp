@@ -155,7 +155,11 @@ function App() {
                         <TrendChart history={history} range={range} onRangeChange={setRange} />
 
                         {current ? (
-                            <DeviceGrid devices={devices} nowSec={nowSec} />
+                            <DeviceGrid
+                                devices={devices}
+                                nowSec={nowSec}
+                                sparkRefreshKey={history?.updated_at ?? 0}
+                            />
                         ) : (
                             <div className="skeleton" style={{ height: "300px", marginBottom: "1rem" }} />
                         )}

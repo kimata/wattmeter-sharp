@@ -2,11 +2,13 @@ interface SparklineProps {
     values: (number | null)[];
     width?: number;
     height?: number;
+    // 値が変わると再マウントされ、クロスフェードのアニメーションが再生される
+    refreshKey?: number;
 }
 
 // 電力推移のミニグラフ。受信できなかった区間 (null) は線を切り、
 // 下端に赤いティックを打って「切れていた時間帯」を見えるようにする。
-export function Sparkline({ values, width = 160, height = 30 }: SparklineProps) {
+export function Sparkline({ values, width = 160, height = 30, refreshKey }: SparklineProps) {
     if (values.length < 2) {
         return null;
     }
@@ -41,6 +43,7 @@ export function Sparkline({ values, width = 160, height = 30 }: SparklineProps) 
 
     return (
         <svg
+            key={refreshKey}
             className="device-spark"
             width="100%"
             height={height}
