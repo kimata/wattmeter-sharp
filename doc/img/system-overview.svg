@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 640" font-family="'Hiragino Sans','Noto Sans JP',Meiryo,sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#52514e"/>
+    </marker>
+  </defs>
+  <rect width="920" height="640" fill="#fcfcfb"/>
+
+  <!-- 凡例 -->
+  <text x="20" y="625" font-size="11" fill="#85847e">実線 = データフロー ／ 破線 = 監視・通知 ／ 青枠 = 本リポジトリのプロセス ／ 灰枠 = 外部システム・ファイル</text>
+
+  <!-- JH-AG01 -->
+  <rect x="20" y="60" width="150" height="64" rx="8" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+  <text x="95" y="87" text-anchor="middle" font-size="14" font-weight="bold" fill="#0b0b0b">JH-AG01</text>
+  <text x="95" y="106" text-anchor="middle" font-size="11" fill="#52514e">HEMS コントローラ</text>
+
+  <!-- server -->
+  <rect x="230" y="48" width="210" height="88" rx="8" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.5"/>
+  <text x="335" y="72" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b0b0b">sharp_hems_server.py</text>
+  <text x="335" y="92" text-anchor="middle" font-size="11" fill="#52514e">serial_pubsub.start_server()</text>
+  <text x="335" y="108" text-anchor="middle" font-size="11" fill="#52514e">read_packet: 0xFE 同期・再同期</text>
+  <text x="335" y="124" text-anchor="middle" font-size="11" fill="#52514e">ZMQ PUB tcp://*:4444 ch="serial"</text>
+  <line x1="170" y1="92" x2="230" y2="92" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="200" y="84" text-anchor="middle" font-size="10" fill="#85847e">UART</text>
+  <text x="200" y="106" text-anchor="middle" font-size="10" fill="#85847e">115200bps</text>
+
+  <!-- logger -->
+  <rect x="510" y="20" width="240" height="150" rx="8" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.5"/>
+  <text x="630" y="44" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b0b0b">sharp_hems_logger.py</text>
+  <text x="630" y="64" text-anchor="middle" font-size="11" fill="#52514e">serial_pubsub.start_client() (ZMQ SUB)</text>
+  <text x="630" y="82" text-anchor="middle" font-size="11" fill="#52514e">sniffer.PacketSniffer … パケット解析</text>
+  <text x="630" y="100" text-anchor="middle" font-size="11" fill="#52514e">device.DeviceRegistry … 名前解決</text>
+  <text x="630" y="118" text-anchor="middle" font-size="11" fill="#52514e">metrics.MetricsCollector … 受信記録</text>
+  <text x="630" y="136" text-anchor="middle" font-size="11" fill="#52514e">watchdog.DeviceWatchdog … 無応答監視</text>
+  <text x="630" y="154" text-anchor="middle" font-size="11" fill="#52514e">fluent_send() … 送信</text>
+  <line x1="440" y1="80" x2="510" y2="70" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- dump -->
+  <rect x="510" y="200" width="240" height="56" rx="8" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.5"/>
+  <text x="630" y="224" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b0b0b">sharp_hems_dump.py</text>
+  <text x="630" y="242" text-anchor="middle" font-size="11" fill="#52514e">packet_dump.append() → packet.dump (JSONL)</text>
+  <line x1="440" y1="110" x2="510" y2="222" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- fluentd / influxdb -->
+  <rect x="790" y="20" width="110" height="52" rx="8" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+  <text x="845" y="42" text-anchor="middle" font-size="12" font-weight="bold" fill="#0b0b0b">Fluentd</text>
+  <text x="845" y="60" text-anchor="middle" font-size="10" fill="#52514e">(外部)</text>
+  <line x1="750" y1="46" x2="790" y2="46" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <rect x="790" y="100" width="110" height="52" rx="8" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+  <text x="845" y="122" text-anchor="middle" font-size="12" font-weight="bold" fill="#0b0b0b">InfluxDB</text>
+  <text x="845" y="140" text-anchor="middle" font-size="10" fill="#52514e">(外部)</text>
+  <line x1="845" y1="72" x2="845" y2="100" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- slack -->
+  <rect x="790" y="180" width="110" height="52" rx="8" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+  <text x="845" y="202" text-anchor="middle" font-size="12" font-weight="bold" fill="#0b0b0b">Slack</text>
+  <text x="845" y="220" text-anchor="middle" font-size="10" fill="#52514e">切断・復帰・エラー通知</text>
+  <line x1="750" y1="150" x2="790" y2="196" stroke="#52514e" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+
+  <!-- metrics.db -->
+  <rect x="510" y="300" width="240" height="70" rx="8" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+  <text x="630" y="324" text-anchor="middle" font-size="12" font-weight="bold" fill="#0b0b0b">metrics.db (SQLite)</text>
+  <text x="630" y="342" text-anchor="middle" font-size="10" fill="#52514e">sensor_heartbeats / sensor_availability</text>
+  <text x="630" y="358" text-anchor="middle" font-size="10" fill="#52514e">communication_errors</text>
+  <line x1="630" y1="170" x2="630" y2="200" stroke="#52514e" stroke-width="0" fill="none"/>
+  <line x1="700" y1="170" x2="700" y2="300" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- dev_id.dat -->
+  <rect x="510" y="400" width="240" height="52" rx="8" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+  <text x="630" y="422" text-anchor="middle" font-size="12" font-weight="bold" fill="#0b0b0b">dev_id.dat (JSON)</text>
+  <text x="630" y="440" text-anchor="middle" font-size="10" fill="#52514e">dev_id ⇔ IEEE アドレスの学習キャッシュ</text>
+  <line x1="560" y1="170" x2="560" y2="400" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- webui -->
+  <rect x="230" y="300" width="210" height="120" rx="8" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.5"/>
+  <text x="335" y="324" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b0b0b">webui.py (Flask)</text>
+  <text x="335" y="344" text-anchor="middle" font-size="11" fill="#52514e">webui/api/power … 電力</text>
+  <text x="335" y="362" text-anchor="middle" font-size="11" fill="#52514e">webui/api/metrics … 受信状態</text>
+  <text x="335" y="380" text-anchor="middle" font-size="11" fill="#52514e">webui/api/device … 未登録デバイス</text>
+  <text x="335" y="398" text-anchor="middle" font-size="11" fill="#52514e">静的配信 frontend/dist</text>
+  <line x1="510" y1="335" x2="440" y2="345" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+  <line x1="510" y1="426" x2="440" y2="390" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+  <path d="M790,140 C560,180 480,240 420,300" stroke="#52514e" stroke-width="1.6" fill="none" marker-end="url(#ah)"/>
+
+  <!-- browser -->
+  <rect x="20" y="320" width="150" height="80" rx="8" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+  <text x="95" y="348" text-anchor="middle" font-size="12" font-weight="bold" fill="#0b0b0b">ブラウザ</text>
+  <text x="95" y="366" text-anchor="middle" font-size="10" fill="#52514e">React (frontend/)</text>
+  <text x="95" y="382" text-anchor="middle" font-size="10" fill="#52514e">1〜5分毎ポーリング</text>
+  <line x1="230" y1="360" x2="170" y2="360" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- healthz -->
+  <rect x="20" y="470" width="200" height="70" rx="8" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.5"/>
+  <text x="120" y="494" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b0b0b">healthz.py</text>
+  <text x="120" y="512" text-anchor="middle" font-size="11" fill="#52514e">liveness ファイルの鮮度確認</text>
+  <text x="120" y="528" text-anchor="middle" font-size="11" fill="#52514e">(Docker HEALTHCHECK)</text>
+
+  <!-- liveness file -->
+  <rect x="300" y="480" width="200" height="52" rx="8" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+  <text x="400" y="502" text-anchor="middle" font-size="12" font-weight="bold" fill="#0b0b0b">liveness ファイル</text>
+  <text x="400" y="520" text-anchor="middle" font-size="10" fill="#52514e">送信成功時に logger / server が更新</text>
+  <line x1="300" y1="506" x2="220" y2="506" stroke="#52514e" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#ah)"/>
+  <path d="M560,170 C540,300 480,430 500,485" stroke="#52514e" stroke-width="0" fill="none"/>
+  <path d="M630,456 C620,480 540,495 500,500" stroke="#52514e" stroke-width="1.4" stroke-dasharray="4 3" fill="none" marker-end="url(#ah)"/>
+
+  <!-- status / calibrate -->
+  <rect x="560" y="480" width="340" height="110" rx="8" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.5"/>
+  <text x="730" y="504" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b0b0b">補助 CLI (手動実行)</text>
+  <text x="730" y="526" text-anchor="middle" font-size="11" fill="#52514e">sharp_hems_status.py … InfluxDB のデータ有無チェック</text>
+  <text x="730" y="544" text-anchor="middle" font-size="11" fill="#52514e">sharp_hems_calibrate.py … watt_scale の較正</text>
+  <text x="730" y="562" text-anchor="middle" font-size="11" fill="#52514e">sharp_hems_logger.py --replay … ダンプ再生</text>
+  <text x="730" y="580" text-anchor="middle" font-size="11" fill="#52514e">serial_pubsub.py … 単体デバッグ実行</text>
+</svg>

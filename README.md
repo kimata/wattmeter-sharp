@@ -74,6 +74,10 @@
 
 ## 🏛️ アーキテクチャ
 
+> [!TIP]
+> コード構成の詳細 (パケットプロトコル、dev_id 学習、メトリクス設計、WebUI 構成など) は
+> **[doc/architecture.md](doc/architecture.md)** を参照してください。
+
 ### システム全体図
 
 ```mermaid

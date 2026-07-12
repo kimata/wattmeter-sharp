@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 560" font-family="'Hiragino Sans','Noto Sans JP',Meiryo,sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#52514e"/>
+    </marker>
+  </defs>
+  <rect width="920" height="560" fill="#fcfcfb"/>
+
+  <text x="20" y="34" font-size="15" font-weight="bold" fill="#0b0b0b">受信記録: 360 秒 (6 分) のタイムスロット</text>
+  <g font-size="11">
+    <g transform="translate(20, 50)">
+      <rect x="0" y="0" width="70" height="34" fill="#ecf8f3" stroke="#008300"/>
+      <rect x="70" y="0" width="70" height="34" fill="#ecf8f3" stroke="#008300"/>
+      <rect x="140" y="0" width="70" height="34" fill="#fdf0f0" stroke="#e34948"/>
+      <rect x="210" y="0" width="70" height="34" fill="#ecf8f3" stroke="#008300"/>
+      <rect x="280" y="0" width="70" height="34" fill="#ecf8f3" stroke="#008300"/>
+      <text x="35" y="22" text-anchor="middle" fill="#0b0b0b">受信</text>
+      <text x="105" y="22" text-anchor="middle" fill="#0b0b0b">受信</text>
+      <text x="175" y="22" text-anchor="middle" fill="#0b0b0b">欠測</text>
+      <text x="245" y="22" text-anchor="middle" fill="#0b0b0b">受信</text>
+      <text x="315" y="22" text-anchor="middle" fill="#0b0b0b">受信</text>
+      <text x="0" y="56" fill="#85847e">slot = timestamp // 360 (record_heartbeat)</text>
+      <text x="0" y="74" fill="#85847e">UNIQUE(sensor_name, time_slot) で 1 スロット 1 行</text>
+      <text x="0" y="92" fill="#85847e">境界から 30 秒以内は前スロットが空なら前へ記録</text>
+    </g>
+
+    <g transform="translate(440, 50)" font-size="11">
+      <text x="0" y="22" fill="#52514e">← 受信再開時、直前 5 スロット以内に受信があれば</text>
+      <text x="12" y="40" fill="#52514e">間の欠測を communication_errors に記録</text>
+      <text x="12" y="58" fill="#52514e">(_detect_communication_errors)</text>
+      <text x="12" y="76" fill="#52514e">それより長い欠測は「切断」でありエラーとしては記録しない</text>
+    </g>
+  </g>
+
+  <!-- retention -->
+  <text x="20" y="180" font-size="15" font-weight="bold" fill="#0b0b0b">retention: 古い生データは日次サマリーへ畳み込み (cleanup、logger から 1 日 1 回)</text>
+
+  <g font-size="11">
+    <!-- old folded -->
+    <rect x="20" y="200" width="380" height="60" rx="8" fill="#efeeea" stroke="#85847e" stroke-width="1.2"/>
+    <text x="210" y="224" text-anchor="middle" font-weight="bold" fill="#0b0b0b">retention_days (既定 30 日) より古い期間</text>
+    <text x="210" y="244" text-anchor="middle" fill="#52514e">日単位に集約後、生ハートビートは DELETE + VACUUM</text>
+
+    <!-- recent raw -->
+    <rect x="420" y="200" width="330" height="60" rx="8" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.4"/>
+    <text x="585" y="224" text-anchor="middle" font-weight="bold" fill="#0b0b0b">直近 retention_days</text>
+    <text x="585" y="244" text-anchor="middle" fill="#52514e">生ハートビートをそのまま保持</text>
+
+    <rect x="770" y="200" width="130" height="60" rx="8" fill="#fcfcfb" stroke="#85847e" stroke-dasharray="4 3"/>
+    <text x="835" y="234" text-anchor="middle" fill="#52514e">現在</text>
+
+    <path d="M210,260 v28" stroke="#52514e" stroke-width="1.4" marker-end="url(#ah)"/>
+  </g>
+
+  <!-- tables -->
+  <g font-size="11">
+    <rect x="20" y="300" width="380" height="96" rx="8" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+    <text x="35" y="324" font-weight="bold" font-size="12" fill="#0b0b0b">sensor_availability (日次サマリー)</text>
+    <text x="35" y="346" fill="#52514e">sensor_name / date (UTC) / total_expected (240)</text>
+    <text x="35" y="364" fill="#52514e">total_received / availability_percent</text>
+    <text x="35" y="384" fill="#52514e">完全欠測日も received=0 で記録 (受信率の水増し防止)</text>
+
+    <rect x="420" y="300" width="330" height="96" rx="8" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+    <text x="435" y="324" font-weight="bold" font-size="12" fill="#0b0b0b">sensor_heartbeats (生データ)</text>
+    <text x="435" y="346" fill="#52514e">sensor_name / timestamp / time_slot</text>
+    <text x="435" y="368" fill="#52514e">最低 2 日は保持 (24h 受信率の計算が</text>
+    <text x="435" y="386" fill="#52514e">生データだけで完結するように)</text>
+  </g>
+
+  <!-- availability calc -->
+  <text x="20" y="440" font-size="15" font-weight="bold" fill="#0b0b0b">受信率の計算 (MetricsCollector)</text>
+  <g font-size="12" fill="#52514e">
+    <text x="20" y="466">・過去 24 時間 : calculate_availability_between() … 生データのスロット数のみで計算</text>
+    <text x="20" y="488">・累計 : calculate_total_availability() … Σ(日次サマリー) + 生データ部分の合算。データ量に依らずクエリコストが一定</text>
+    <text x="20" y="510">・現在のスロットは、受信済みの場合のみ期待スロット数に含める (計測中スロットで受信率が下がる誤差を防ぐ)</text>
+    <text x="20" y="532">・communication_errors は retention_days × 3 で削除</text>
+  </g>
+</svg>

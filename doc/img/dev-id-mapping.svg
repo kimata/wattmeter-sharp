@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 430" font-family="'Hiragino Sans','Noto Sans JP',Meiryo,sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#52514e"/>
+    </marker>
+  </defs>
+  <rect width="920" height="430" fill="#fcfcfb"/>
+
+  <text x="20" y="34" font-size="15" font-weight="bold" fill="#0b0b0b">dev_id ⇔ IEEE アドレス対応の学習 (通知周期ごとに繰り返し)</text>
+
+  <!-- timeline -->
+  <line x1="40" y1="90" x2="880" y2="90" stroke="#85847e" stroke-width="1.6" marker-end="url(#ah)"/>
+  <text x="885" y="80" font-size="11" fill="#85847e" text-anchor="end">時間</text>
+
+  <!-- 0x08 packets -->
+  <g font-size="11">
+    <rect x="60" y="66" width="80" height="48" rx="6" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.4"/>
+    <text x="100" y="86" text-anchor="middle" font-weight="bold" fill="#0b0b0b">0x08</text>
+    <text x="100" y="104" text-anchor="middle" fill="#52514e">addr A</text>
+    <rect x="150" y="66" width="80" height="48" rx="6" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.4"/>
+    <text x="190" y="86" text-anchor="middle" font-weight="bold" fill="#0b0b0b">0x08</text>
+    <text x="190" y="104" text-anchor="middle" fill="#52514e">addr B</text>
+    <rect x="240" y="66" width="80" height="48" rx="6" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.4"/>
+    <text x="280" y="86" text-anchor="middle" font-weight="bold" fill="#0b0b0b">0x08</text>
+    <text x="280" y="104" text-anchor="middle" fill="#52514e">addr C</text>
+
+    <rect x="370" y="66" width="90" height="48" rx="6" fill="#ecf8f3" stroke="#008300" stroke-width="1.4"/>
+    <text x="415" y="86" text-anchor="middle" font-weight="bold" fill="#0b0b0b">0x12</text>
+    <text x="415" y="104" text-anchor="middle" fill="#52514e">id=101, idx=0</text>
+    <rect x="470" y="66" width="90" height="48" rx="6" fill="#ecf8f3" stroke="#008300" stroke-width="1.4"/>
+    <text x="515" y="86" text-anchor="middle" font-weight="bold" fill="#0b0b0b">0x12</text>
+    <text x="515" y="104" text-anchor="middle" fill="#52514e">id=102, idx=1</text>
+    <rect x="570" y="66" width="90" height="48" rx="6" fill="#ecf8f3" stroke="#008300" stroke-width="1.4"/>
+    <text x="615" y="86" text-anchor="middle" font-weight="bold" fill="#0b0b0b">0x12</text>
+    <text x="615" y="104" text-anchor="middle" fill="#52514e">id=103, idx=2</text>
+
+    <rect x="710" y="66" width="80" height="48" rx="6" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.4"/>
+    <text x="750" y="86" text-anchor="middle" font-weight="bold" fill="#0b0b0b">0x08</text>
+    <text x="750" y="104" text-anchor="middle" fill="#52514e">addr A</text>
+    <text x="800" y="94" font-size="12" fill="#85847e">… 次周期</text>
+  </g>
+
+  <!-- annotations -->
+  <g font-size="11" fill="#52514e">
+    <path d="M190,130 v20" stroke="#52514e" stroke-width="1.2" marker-end="url(#ah)"/>
+    <text x="190" y="168" text-anchor="middle">ieee_addr_list = [A, B, C]</text>
+    <text x="190" y="184" text-anchor="middle">(0x08 列の先頭で前周期の残留をリセット)</text>
+
+    <path d="M515,130 v20" stroke="#52514e" stroke-width="1.2" marker-end="url(#ah)"/>
+    <text x="515" y="168" text-anchor="middle">dev_id_map[101]=A, [102]=B, [103]=C</text>
+    <text x="515" y="184" text-anchor="middle">最後の 0x12 (idx = len−1) でリストをクリア</text>
+
+    <path d="M750,130 v20" stroke="#52514e" stroke-width="1.2" marker-end="url(#ah)"/>
+    <text x="750" y="168" text-anchor="middle">新しい周期の開始</text>
+  </g>
+
+  <!-- guards -->
+  <text x="20" y="240" font-size="15" font-weight="bold" fill="#0b0b0b">パケットロスへの防御 (誤マッピングの永続化を防ぐ)</text>
+  <g font-size="12">
+    <rect x="20" y="258" width="425" height="90" rx="8" fill="#fdf6e6" stroke="#b97e00" stroke-width="1.3"/>
+    <text x="35" y="282" font-weight="bold" fill="#0b0b0b">最後の 0x12 を取りこぼした場合</text>
+    <text x="35" y="304" fill="#52514e">リストが残留するが、次周期の最初の 0x08 で</text>
+    <text x="35" y="322" fill="#52514e">リセットされるため、index とアドレスの対応は</text>
+    <text x="35" y="340" fill="#52514e">ずれない (_process_ieee_addr)</text>
+
+    <rect x="475" y="258" width="425" height="90" rx="8" fill="#fdf6e6" stroke="#b97e00" stroke-width="1.3"/>
+    <text x="490" y="282" font-weight="bold" fill="#0b0b0b">0x08 を取りこぼした場合</text>
+    <text x="490" y="304" fill="#52514e">0x12 の index がリスト範囲外になった時点で</text>
+    <text x="490" y="322" fill="#52514e">その周期を丸ごと破棄し、次周期を待つ</text>
+    <text x="490" y="340" fill="#52514e">(_process_dev_id)</text>
+  </g>
+
+  <g font-size="12" fill="#52514e">
+    <text x="20" y="390">学習結果は dev_id.dat (JSON) に一時ファイル + rename でアトミックに永続化。旧フォーマット (pickle) は初回読込時に自動移行。</text>
+    <text x="20" y="412">計測パケット (0x2C) の dev_id が未学習の場合は addr="UNKNOWN" として扱われ、WebUI の「未登録のデバイス」には登場しない (アドレス学習後に登場)。</text>
+  </g>
+</svg>

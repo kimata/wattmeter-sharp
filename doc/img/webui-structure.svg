@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 620" font-family="'Hiragino Sans','Noto Sans JP',Meiryo,sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+      <path d="M0,0 L9,4 L0,8 z" fill="#52514e"/>
+    </marker>
+  </defs>
+  <rect width="920" height="620" fill="#fcfcfb"/>
+
+  <text x="20" y="34" font-size="15" font-weight="bold" fill="#0b0b0b">WebUI: バックエンド API と React フロントエンドの対応</text>
+
+  <!-- backend -->
+  <rect x="20" y="60" width="420" height="330" rx="10" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.5"/>
+  <text x="230" y="86" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b0b0b">Flask (webui.py) /wattmeter-sharp/metrics</text>
+
+  <g font-size="11">
+    <rect x="40" y="104" width="380" height="66" rx="6" fill="#fcfcfb" stroke="#2a78d6"/>
+    <text x="55" y="124" font-weight="bold" fill="#0b0b0b">api/power (InfluxDB 並列クエリ + TTL キャッシュ)</text>
+    <text x="55" y="142" fill="#52514e">GET /api/power/current … 現在の消費電力 (30 秒キャッシュ)</text>
+    <text x="55" y="158" fill="#52514e">GET /api/power/history?range=3h|24h|7d|30d (4 分キャッシュ)</text>
+
+    <rect x="40" y="182" width="380" height="66" rx="6" fill="#fcfcfb" stroke="#2a78d6"/>
+    <text x="55" y="202" font-weight="bold" fill="#0b0b0b">api/metrics (metrics.db、Collector はアプリで共有)</text>
+    <text x="55" y="220" fill="#52514e">GET /api/sensor_stat … 受信率・最終受信時刻</text>
+    <text x="55" y="236" fill="#52514e">GET /api/communication_errors … ヒストグラム + ログ</text>
+
+    <rect x="40" y="260" width="380" height="50" rx="6" fill="#fcfcfb" stroke="#2a78d6"/>
+    <text x="55" y="280" font-weight="bold" fill="#0b0b0b">api/device (dev_id.dat + device.yaml)</text>
+    <text x="55" y="298" fill="#52514e">GET /api/devices/unknown … 未登録デバイス</text>
+
+    <rect x="40" y="322" width="380" height="50" rx="6" fill="#fcfcfb" stroke="#85847e"/>
+    <text x="55" y="342" font-weight="bold" fill="#0b0b0b">my_lib.webapp (共通基盤)</text>
+    <text x="55" y="360" fill="#52514e">静的配信 (frontend/dist) / GET /api/sysinfo ほか</text>
+  </g>
+
+  <!-- frontend -->
+  <rect x="480" y="60" width="420" height="470" rx="10" fill="#f1f1ee" stroke="#85847e" stroke-width="1.4"/>
+  <text x="690" y="86" text-anchor="middle" font-size="13" font-weight="bold" fill="#0b0b0b">React (frontend/src) — App.tsx が全 API を統合</text>
+
+  <g font-size="11">
+    <rect x="500" y="104" width="380" height="150" rx="6" fill="#fcfcfb" stroke="#85847e"/>
+    <text x="515" y="124" font-weight="bold" fill="#0b0b0b">電力タブ</text>
+    <text x="515" y="144" fill="#52514e">PowerNow … 合計 W・kWh・電気代・接続サマリー</text>
+    <text x="515" y="162" fill="#52514e">TrendChart … 積み上げ推移 (上位 8 台 + その他)</text>
+    <text x="515" y="180" fill="#52514e">DeviceGrid … カード (W・シェア・Sparkline)</text>
+    <text x="515" y="198" fill="#52514e">EnergyRanking … 期間の電力量ランキング</text>
+    <text x="515" y="224" fill="#85847e">power/current を 60 秒毎、power/history を 5 分毎に取得。</text>
+    <text x="515" y="240" fill="#85847e">AnimatedNumber (framer-motion) と Chart.js で更新を描画</text>
+
+    <rect x="500" y="266" width="380" height="132" rx="6" fill="#fcfcfb" stroke="#85847e"/>
+    <text x="515" y="286" font-weight="bold" fill="#0b0b0b">接続状態タブ</text>
+    <text x="515" y="306" fill="#52514e">ConnectionStatus … 状態サマリータイル</text>
+    <text x="515" y="324" fill="#52514e">UnknownDevices … 未登録デバイス + YAML 例</text>
+    <text x="515" y="342" fill="#52514e">SensorTable … 受信率バー付きテーブル</text>
+    <text x="515" y="360" fill="#52514e">CommunicationErrorChart / ErrorTable … 切断傾向</text>
+    <text x="515" y="384" fill="#85847e">sensor_stat 2 分毎 / errors・unknown 5 分毎</text>
+
+    <rect x="500" y="412" width="380" height="100" rx="6" fill="#fcfcfb" stroke="#85847e"/>
+    <text x="515" y="432" font-weight="bold" fill="#0b0b0b">共通ロジック</text>
+    <text x="515" y="452" fill="#52514e">useApi … ポーリング (失敗時は前回データ保持 + バナー)</text>
+    <text x="515" y="470" fill="#52514e">utils/device.connectionState … 4 段階の接続判定</text>
+    <text x="515" y="488" fill="#52514e">接続中 / 不安定 (24h 受信率&lt;90%) / 切断 (&gt;15 分) /</text>
+    <text x="515" y="504" fill="#52514e">長期切断 (&gt;24 時間)</text>
+  </g>
+
+  <line x1="440" y1="220" x2="480" y2="220" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+  <line x1="480" y1="180" x2="440" y2="150" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+  <line x1="480" y1="330" x2="440" y2="290" stroke="#52514e" stroke-width="1.6" marker-end="url(#ah)"/>
+
+  <!-- data sources -->
+  <g font-size="11">
+    <rect x="20" y="430" width="195" height="52" rx="8" fill="#fcfcfb" stroke="#85847e" stroke-dasharray="4 3"/>
+    <text x="117" y="452" text-anchor="middle" font-weight="bold" fill="#0b0b0b">InfluxDB</text>
+    <text x="117" y="470" text-anchor="middle" fill="#52514e">電力の時系列 (外部)</text>
+
+    <rect x="235" y="430" width="205" height="52" rx="8" fill="#fcfcfb" stroke="#85847e" stroke-dasharray="4 3"/>
+    <text x="337" y="452" text-anchor="middle" font-weight="bold" fill="#0b0b0b">metrics.db / dev_id.dat</text>
+    <text x="337" y="470" text-anchor="middle" fill="#52514e">logger が書き込むローカルデータ</text>
+
+    <line x1="117" y1="430" x2="150" y2="390" stroke="#52514e" stroke-width="1.4" marker-end="url(#ah)"/>
+    <line x1="337" y1="430" x2="300" y2="390" stroke="#52514e" stroke-width="1.4" marker-end="url(#ah)"/>
+  </g>
+
+  <g font-size="12" fill="#52514e">
+    <text x="20" y="560">履歴 API は集計ウィンドウ末尾の未受信スロットを「max(10 分, 1 スロット) 以内なら直近値で補完」してから返す</text>
+    <text x="20" y="582">(_fill_short_gaps)。それを超える欠損は実際の切断としてそのまま返し、グラフ上で 0 に落ちて見える。</text>
+  </g>
+</svg>

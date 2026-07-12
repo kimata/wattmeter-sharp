@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 500" font-family="'Hiragino Sans','Noto Sans JP',Meiryo,sans-serif">
+  <rect width="920" height="500" fill="#fcfcfb"/>
+
+  <text x="20" y="34" font-size="15" font-weight="bold" fill="#0b0b0b">シリアルフレーム構造 (serial_pubsub.read_packet)</text>
+
+  <!-- frame boxes -->
+  <g font-size="12">
+    <rect x="20" y="55" width="90" height="46" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.4"/>
+    <text x="65" y="74" text-anchor="middle" font-weight="bold" fill="#0b0b0b">0xFE</text>
+    <text x="65" y="92" text-anchor="middle" font-size="10" fill="#52514e">同期バイト</text>
+
+    <rect x="110" y="55" width="90" height="46" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.4"/>
+    <text x="155" y="74" text-anchor="middle" font-weight="bold" fill="#0b0b0b">種別 T</text>
+    <text x="155" y="92" text-anchor="middle" font-size="10" fill="#52514e">header[1]</text>
+
+    <rect x="200" y="55" width="380" height="46" fill="#f1f1ee" stroke="#85847e" stroke-width="1.2"/>
+    <text x="390" y="74" text-anchor="middle" font-weight="bold" fill="#0b0b0b">ペイロード (T + 3 バイト)</text>
+    <text x="390" y="92" text-anchor="middle" font-size="10" fill="#52514e">長さが一致しない場合は破棄 → 次の 0xFE まで読み捨てて再同期</text>
+  </g>
+
+  <!-- type table -->
+  <text x="20" y="145" font-size="15" font-weight="bold" fill="#0b0b0b">パケット種別 (sniffer.PacketSniffer.process)</text>
+  <g font-size="12">
+    <rect x="20" y="160" width="880" height="30" fill="#efeeea"/>
+    <text x="35" y="180" font-weight="bold" fill="#52514e">種別</text>
+    <text x="130" y="180" font-weight="bold" fill="#52514e">名称</text>
+    <text x="330" y="180" font-weight="bold" fill="#52514e">処理</text>
+
+    <text x="35" y="210" fill="#0b0b0b">0x08</text>
+    <text x="130" y="210" fill="#0b0b0b">IEEE アドレス通知</text>
+    <text x="330" y="210" fill="#52514e">ieee_addr_list に追加 (列の先頭で前周期の残留をリセット)</text>
+    <line x1="20" y1="220" x2="900" y2="220" stroke="#e3e2dd"/>
+
+    <text x="35" y="242" fill="#0b0b0b">0x12</text>
+    <text x="130" y="242" fill="#0b0b0b">dev_id 通知</text>
+    <text x="330" y="242" fill="#52514e">index で ieee_addr_list を引き dev_id⇔アドレス対応を学習・永続化</text>
+    <line x1="20" y1="252" x2="900" y2="252" stroke="#e3e2dd"/>
+
+    <text x="35" y="274" fill="#0b0b0b">0x2C</text>
+    <text x="130" y="274" fill="#0b0b0b">計測値</text>
+    <text x="330" y="274" fill="#52514e">電力値を復元して on_capture コールバックへ</text>
+    <line x1="20" y1="284" x2="900" y2="284" stroke="#e3e2dd"/>
+
+    <text x="35" y="306" fill="#0b0b0b">その他</text>
+    <text x="330" y="306" fill="#85847e">デバッグログのみ (無視)</text>
+  </g>
+
+  <!-- measure packet layout -->
+  <text x="20" y="360" font-size="15" font-weight="bold" fill="#0b0b0b">計測パケット (0x2C) のフィールドオフセット (parse_packet_measure)</text>
+  <g font-size="11">
+    <g transform="translate(20, 380)">
+      <rect x="0" y="0" width="120" height="40" fill="#eef4fc" stroke="#2a78d6"/>
+      <text x="60" y="17" text-anchor="middle" font-weight="bold" fill="#0b0b0b">dev_id</text>
+      <text x="60" y="32" text-anchor="middle" fill="#52514e">[5:7] uint16 LE</text>
+
+      <rect x="130" y="0" width="120" height="40" fill="#eef4fc" stroke="#2a78d6"/>
+      <text x="190" y="17" text-anchor="middle" font-weight="bold" fill="#0b0b0b">counter</text>
+      <text x="190" y="32" text-anchor="middle" fill="#52514e">[14] 重複検出用</text>
+
+      <rect x="260" y="0" width="140" height="40" fill="#eef4fc" stroke="#2a78d6"/>
+      <text x="330" y="17" text-anchor="middle" font-weight="bold" fill="#0b0b0b">cur_time</text>
+      <text x="330" y="32" text-anchor="middle" fill="#52514e">[19:21] uint16 LE</text>
+
+      <rect x="410" y="0" width="140" height="40" fill="#eef4fc" stroke="#2a78d6"/>
+      <text x="480" y="17" text-anchor="middle" font-weight="bold" fill="#0b0b0b">cur_power</text>
+      <text x="480" y="32" text-anchor="middle" fill="#52514e">[26:30] uint32 LE</text>
+
+      <rect x="560" y="0" width="140" height="40" fill="#eef4fc" stroke="#2a78d6"/>
+      <text x="630" y="17" text-anchor="middle" font-weight="bold" fill="#0b0b0b">pre_time</text>
+      <text x="630" y="32" text-anchor="middle" fill="#52514e">[35:37] uint16 LE</text>
+
+      <rect x="710" y="0" width="140" height="40" fill="#eef4fc" stroke="#2a78d6"/>
+      <text x="780" y="17" text-anchor="middle" font-weight="bold" fill="#0b0b0b">pre_power</text>
+      <text x="780" y="32" text-anchor="middle" fill="#52514e">[42:46] uint32 LE</text>
+    </g>
+  </g>
+  <g font-size="12" fill="#52514e">
+    <text x="20" y="455">watt = (cur_power − pre_power) ÷ (cur_time − pre_time) × scale　(時刻は 16bit、電力積算は 32bit で折り返し補正)</text>
+    <text x="20" y="477">scale = device.yaml のデバイス毎 scale > config.yaml の sensor.watt_scale > 既定値 1.5　／　counter・Δtime=0 で重複パケットを棄却</text>
+  </g>
+</svg>
