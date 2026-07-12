@@ -3,7 +3,7 @@
 センサーから収集した消費電力データを Fluentd を使って送信します。
 
 Usage:
-  sharp_hmes_logger.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-n COUNT] [-d] [-D]
+  sharp_hems_logger.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-n COUNT] [-d] [-D]
 
 Options:
   -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
@@ -30,11 +30,19 @@ import sharp_hems.serial_pubsub
 import sharp_hems.sniffer
 from sharp_hems.metrics.collector import MetricsCollector
 
-SCHEMA_CONFIG = "config.schema"
+SCHEMA_CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config.schema"
 
 # グローバル変数として保持（シグナルハンドラで使用）
 _metrics_collector = None
 _sender = None
+
+
+def env_flag(name):
+    """環境変数を真偽値として解釈する ("false" や "0" は偽)。"""
+    value = os.environ.get(name)
+    if value is None:
+        return None
+    return value.strip().lower() in ("1", "true", "yes", "on")
 
 
 def record_metrics(metrics_collector, data):
@@ -48,7 +56,7 @@ def record_metrics(metrics_collector, data):
         logging.exception("Failed to record metrics")
 
 
-def fluent_send(sender, label, field, data, liveness_file):
+def fluent_send(handle, data):
     try:
         name = sharp_hems.device.get_name(data["addr"])
 
@@ -56,18 +64,18 @@ def fluent_send(sender, label, field, data, liveness_file):
             logging.warning("Unknown device: dev_id = %s", data["dev_id_str"])
             return
 
-        data = {
+        send_data = {
             "hostname": name,
-            field: int(data["watt"]),
+            handle["data"]["field"]: round(data["watt"]),
         }
 
-        if my_lib.fluentd_util.send(sender, label, data):
-            logging.info("Send: %s", data)
-            my_lib.footprint.update(liveness_file)
+        if my_lib.fluentd_util.send(handle["sender"], handle["data"]["label"], send_data):
+            logging.info("Send: %s", send_data)
+            my_lib.footprint.update(handle["liveness"])
         else:
-            logging.error(sender.last_error)
+            logging.error(handle["sender"].last_error)
     except Exception:
-        sharp_hems.notify.error(config)
+        sharp_hems.notify.error(handle["config"])
 
 
 def process_packet(handle, header, payload):
@@ -84,13 +92,7 @@ def process_packet(handle, header, payload):
 
         def on_data_received(data):
             # Fluentdに送信
-            fluent_send(
-                handle["sender"],
-                config["fluentd"]["data"]["label"],
-                config["fluentd"]["data"]["field"],
-                data,
-                handle["liveness"],
-            )
+            fluent_send(handle, data)
             # メトリクス収集も記録
             if "metrics_collector" in handle:
                 record_metrics(handle["metrics_collector"], data)
@@ -135,11 +137,11 @@ def sig_handler(num, frame):  # noqa: ARG001
         sys.exit(0)
 
 
-def start(handle):
+def start(handle, server_host, server_port):
     try:
         sharp_hems.serial_pubsub.start_client(server_host, server_port, handle, process_packet)
     except Exception:
-        sharp_hems.notify.error(config)
+        sharp_hems.notify.error(handle["config"])
         raise
     finally:
         cleanup()
@@ -147,8 +149,6 @@ def start(handle):
 
 ######################################################################
 if __name__ == "__main__":
-    import pathlib
-
     import docopt
     import my_lib.config
     import my_lib.logger
@@ -159,12 +159,14 @@ if __name__ == "__main__":
     server_host = os.environ.get("HEMS_SERVER_HOST", args["-s"])
     server_port = int(os.environ.get("HEMS_SERVER_PORT", args["-p"]))
     count = int(args["-n"])
-    dummy_mode = os.environ.get("DUMMY_MODE", args["-d"])
+    dummy_mode = env_flag("DUMMY_MODE")
+    if dummy_mode is None:
+        dummy_mode = args["-d"]
     debug_mode = args["-D"]
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file, pathlib.Path(SCHEMA_CONFIG))
+    config = my_lib.config.load(config_file, SCHEMA_CONFIG)
 
     dev_define_file = pathlib.Path(config["device"]["define"])
     dev_cache_file = pathlib.Path(config["device"]["cache"])
@@ -196,6 +198,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, sig_handler)
 
     handle = {
+        "config": config,
         "sender": sender,
         "device": {
             "define": dev_define_file,
@@ -204,6 +207,10 @@ if __name__ == "__main__":
         "data": {
             "label": config["fluentd"]["data"]["label"],
             "field": config["fluentd"]["data"]["field"],
+        },
+        "sensor": {
+            "watt_scale": config.get("sensor", {}).get("watt_scale", sharp_hems.sniffer.WATT_SCALE_DEFAULT),
+            "scale_resolver": sharp_hems.device.get_scale,
         },
         "dummy_mode": dummy_mode,
         "packet": {
@@ -216,4 +223,4 @@ if __name__ == "__main__":
     if metrics_collector:
         handle["metrics_collector"] = metrics_collector
 
-    start(handle)
+    start(handle, server_host, server_port)

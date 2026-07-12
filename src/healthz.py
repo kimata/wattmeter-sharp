@@ -42,7 +42,6 @@ if __name__ == "__main__":
 
     config_file = args["-c"]
     server_mode = args["-s"]
-    port = args["-p"]
     server_port = int(os.environ.get("HEMS_SERVER_PORT", args["-p"]))
     debug_mode = args["-D"]
 
@@ -63,4 +62,4 @@ if __name__ == "__main__":
         logging.info("OK.")
         sys.exit(0)
     else:
-        sys.exit(-1)
+        sys.exit(1)

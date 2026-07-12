@@ -3,7 +3,6 @@
 import contextlib
 import logging
 import pathlib
-import pickle
 import random
 import socket
 import threading
@@ -59,12 +58,13 @@ def load_packet_dump(dump_file_path="tests/data/packet.dump"):
         list: [timestamp, header, payload]のリスト
 
     """
+    import sharp_hems.packet_dump
+
     dump_path = pathlib.Path(dump_file_path)
     if not dump_path.exists():
         raise FileNotFoundError(f"packet.dump file not found: {dump_file_path}")
 
-    with dump_path.open("rb") as f:
-        return pickle.load(f)  # noqa: S301
+    return sharp_hems.packet_dump.load(dump_path)
 
 
 def create_mock_socket_context(dump_file_path="tests/data/packet.dump"):
@@ -285,8 +285,8 @@ class MockSerial:
 
     def read(self, size):
         """シリアルからのデータ読み取りをシミュレート"""
-        # ダミーデータの注入（20%の確率）
-        if self.inject_dummy_data and random.random() < 0.2 and size == 2:  # noqa: S311
+        # ダミーデータの注入（20%の確率、パケット先頭の同期バイト読み取り時のみ）
+        if self.inject_dummy_data and random.random() < 0.2 and self.read_position == 0:  # noqa: S311
             dummy_data = self._generate_dummy_data()
             logging.debug(
                 "Injecting dummy data: %s (%d bytes)",
@@ -363,10 +363,18 @@ def test_sniffer():
             msg = "Test completed"
             raise KeyboardInterrupt(msg)
 
-    with contextlib.suppress(KeyboardInterrupt):
-        sharp_hems.serial_pubsub.start_client(
-            "localhost", 4444, {"device": {"cache": pathlib.Path("data/dev_id_test.dat")}}, process_packet
-        )
+    # NOTE: キャッシュは JSON へ移行されるため、追跡対象のフィクスチャを汚さないようコピーして使う
+    import shutil
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        cache_file = pathlib.Path(tmp_dir) / "dev_id_test.dat"
+        shutil.copy(pathlib.Path("data/dev_id_test.dat"), cache_file)
+
+        with contextlib.suppress(KeyboardInterrupt):
+            sharp_hems.serial_pubsub.start_client(
+                "localhost", 4444, {"device": {"cache": cache_file}}, process_packet
+            )
 
     logging.info(my_lib.pretty.format(sense_data_list))
 

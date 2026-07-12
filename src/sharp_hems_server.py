@@ -3,7 +3,7 @@
 センサーからのパケットを Pub-Sub パターンで配信します。
 
 Usage:
-  sharp_hmes_server.py [-c CONFIG] [-t SERIAL_PORT] [-p SERVER_PORT] [-D]
+  sharp_hems_server.py [-c CONFIG] [-t SERIAL_PORT] [-p SERVER_PORT] [-D]
 
 Options:
   -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
@@ -20,7 +20,7 @@ import signal
 import sharp_hems.notify
 import sharp_hems.serial_pubsub
 
-SCHEMA_CONFIG = "config.schema"
+SCHEMA_CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config.schema"
 
 
 def sig_handler(num, frame):  # noqa: ARG001
@@ -30,18 +30,16 @@ def sig_handler(num, frame):  # noqa: ARG001
         sharp_hems.serial_pubsub.stop_server()
 
 
-def start():
+def start(serial_port, server_port, liveness_file, config):
     try:
         sharp_hems.serial_pubsub.start_server(serial_port, server_port, liveness_file)
-    except:
+    except Exception:
         sharp_hems.notify.error(config)
         raise
 
 
 ######################################################################
 if __name__ == "__main__":
-    import pathlib
-
     import docopt
     import my_lib.config
     import my_lib.logger
@@ -55,10 +53,10 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file, pathlib.Path(SCHEMA_CONFIG))
+    config = my_lib.config.load(config_file, SCHEMA_CONFIG)
 
     liveness_file = pathlib.Path(config["liveness"]["file"]["measure"])
 
     logging.info("Start server (serial: %s, port: %d)", serial_port, server_port)
 
-    start()
+    start(serial_port, server_port, liveness_file, config)

@@ -3,7 +3,7 @@
 センサーのシリアル出力をダンプします。
 
 Usage:
-  sharp_hmes_dump.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-o FILE] [-D]
+  sharp_hems_dump.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-o FILE] [-D]
 
 Options:
   -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
@@ -18,47 +18,42 @@ import os
 import pathlib
 import time
 
-import my_lib.fluentd_util
-import my_lib.footprint
-import my_lib.serializer
-
-import sharp_hems.device
 import sharp_hems.notify
+import sharp_hems.packet_dump
 import sharp_hems.serial_pubsub
-import sharp_hems.sniffer
 
-SCHEMA_CONFIG = "config.schema"
+SCHEMA_CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config.schema"
 
 start_time = None
-packet_list = []
+packet_count = 0
 
 
 def process_packet(handle, header, payload):
     global start_time  # noqa: PLW0603
-    global packet_list
+    global packet_count  # noqa: PLW0603
 
     now = time.time()
     if start_time is None:
         start_time = now
 
-    packet_list.append([now - start_time, header, payload])
-    logging.info("Receive %d packet(s) ", len(packet_list))
+    # NOTE: 1 行 = 1 パケットの追記形式なので、長時間のキャプチャでも
+    # 書き込み量はパケット数に比例する
+    sharp_hems.packet_dump.append(handle["dump_file"], now - start_time, header, payload)
 
-    my_lib.serializer.store(handle["dump_file"], packet_list)
+    packet_count += 1
+    logging.info("Receive %d packet(s)", packet_count)
 
 
-def start(handle):
+def start(handle, server_host, server_port, config):
     try:
         sharp_hems.serial_pubsub.start_client(server_host, server_port, handle, process_packet)
-    except:
+    except Exception:
         sharp_hems.notify.error(config)
         raise
 
 
 ######################################################################
 if __name__ == "__main__":
-    import pathlib
-
     import docopt
     import my_lib.config
     import my_lib.logger
@@ -73,24 +68,8 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file, pathlib.Path(SCHEMA_CONFIG))
+    config = my_lib.config.load(config_file, SCHEMA_CONFIG)
 
-    dev_define_file = pathlib.Path(config["device"]["define"])
-    dev_cache_file = pathlib.Path(config["device"]["cache"])
-    liveness_file = pathlib.Path(config["liveness"]["file"]["measure"])
+    logging.info("Start HEMS dump (server: %s:%d, output: %s)", server_host, server_port, dump_file)
 
-    logging.info("Start HEMS logger (server: %s:%d)", server_host, server_port)
-
-    logging.info(
-        "Initialize Fluentd sender (host: %s, tag: %s)",
-        config["fluentd"]["host"],
-        config["fluentd"]["data"]["tag"],
-    )
-    sender = my_lib.fluentd_util.get_handle(config["fluentd"]["data"]["tag"], host=config["fluentd"]["host"])
-
-    start(
-        {
-            "sender": sender,
-            "dump_file": dump_file,
-        }
-    )
+    start({"dump_file": dump_file}, server_host, server_port, config)

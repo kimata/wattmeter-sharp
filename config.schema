@@ -181,6 +181,15 @@
                 "error",
                 "from"
             ]
+        },
+        "sensor": {
+            "type": "object",
+            "properties": {
+                "watt_scale": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                }
+            }
         }
     },
     "required": [

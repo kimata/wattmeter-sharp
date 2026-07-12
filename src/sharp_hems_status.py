@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-定義されたデバイスに対しで電力データが取得できているかチェックします。
+定義されたデバイスに対して電力データが取得できているかチェックします。
 
 Usage:
-  sharp_hmes_status.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-T] [-D]
+  sharp_hems_status.py [-c CONFIG] [-D]
 
 Options:
   -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
@@ -11,12 +11,13 @@ Options:
 """
 
 import logging
+import pathlib
 
 import my_lib.sensor_data
 
 import sharp_hems.device
 
-SCHEMA_CONFIG = "config.schema"
+SCHEMA_CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config.schema"
 
 
 def hems_status_check(config, dev_define_file):
@@ -42,8 +43,6 @@ def hems_status_check(config, dev_define_file):
 
 ######################################################################
 if __name__ == "__main__":
-    import pathlib
-
     import docopt
     import my_lib.config
     import my_lib.logger
@@ -55,7 +54,7 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file, pathlib.Path(SCHEMA_CONFIG))
+    config = my_lib.config.load(config_file, SCHEMA_CONFIG)
 
     dev_define_file = pathlib.Path(config["device"]["define"])
 

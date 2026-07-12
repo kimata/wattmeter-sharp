@@ -22,7 +22,7 @@ import my_lib.config
 import my_lib.logger
 import my_lib.proc_util
 
-SCHEMA_CONFIG = "config.schema"
+SCHEMA_CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config.schema"
 
 
 def term():

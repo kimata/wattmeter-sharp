@@ -204,7 +204,7 @@ class MetricsCollector:
 
         # 指定日の開始と終了のタイムスロットを計算
 
-        date_obj = datetime.datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc)
+        date_obj = datetime.datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=datetime.UTC)
         start_timestamp = int(date_obj.timestamp())
         end_timestamp = start_timestamp + 86400  # 24時間後
 
@@ -381,7 +381,7 @@ class MetricsCollector:
             for row in cursor.fetchall():
                 error_timestamp = row[0]
                 # UTCタイムスタンプを日本時間に変換
-                utc_datetime = datetime.datetime.fromtimestamp(error_timestamp, datetime.timezone.utc)
+                utc_datetime = datetime.datetime.fromtimestamp(error_timestamp, datetime.UTC)
                 jst_datetime = utc_datetime.astimezone(my_lib.time.get_zoneinfo())
 
                 # 日本時間での0時からの経過秒数に変換（日付に関係なく時間帯で集計）
@@ -426,7 +426,7 @@ class MetricsCollector:
                 sensor_name, timestamp, error_type = row
 
                 # タイムスタンプを日時文字列に変換
-                dt = datetime.datetime.fromtimestamp(timestamp, datetime.timezone.utc)
+                dt = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
                 formatted_datetime = dt.strftime("%Y-%m-%d %H:%M:%S")
 
                 errors.append(

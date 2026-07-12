@@ -26,8 +26,42 @@ CH = "serial"
 SER_BAUD = 115200
 SER_TIMEOUT = 5
 
+# パケット先頭の同期バイト。ヘッダは [0xFE, 種別] の 2 バイトで、
+# ペイロード長は 種別 + 3 バイト。
+SER_SYNC_BYTE = 0xFE
+
 should_terminate_server = threading.Event()
 should_terminate_client = threading.Event()
+
+
+def read_packet(ser):
+    """
+    シリアルから 1 パケット読み出す。
+
+    同期バイトが現れるまで 1 バイトずつ読み捨てることで、ノイズや途中起動で
+    ストリーム位置がずれても次のパケット境界で再同期できる。
+    タイムアウトや短読の場合は None を返す。
+    """
+    sync = ser.read(1)
+    if len(sync) == 0:
+        return None
+    if sync[0] != SER_SYNC_BYTE:
+        logging.debug("Skip unexpected byte: 0x%02X (resync)", sync[0])
+        return None
+
+    packet_type = ser.read(1)
+    if len(packet_type) == 0:
+        logging.debug("Short packet (no type byte)")
+        return None
+
+    header = sync + packet_type
+    payload_len = header[1] + 3
+    payload = ser.read(payload_len)
+    if len(payload) != payload_len:
+        logging.warning("Short packet (expected %d bytes, got %d), discard", payload_len, len(payload))
+        return None
+
+    return (header, payload)
 
 
 def start_server(serial_port, server_port, liveness_file):
@@ -48,16 +82,13 @@ def start_server(serial_port, server_port, liveness_file):
         if should_terminate_server.is_set():
             break
 
-        header = ser.read(2)
-
-        if len(header) == 0:
-            continue
-        elif len(header) == 1:  # noqa: RET507
-            logging.debug("Short packet")
+        packet = read_packet(ser)
+        if packet is None:
             continue
 
+        header, payload = packet
         header_hex = header.hex()
-        payload_hex = ser.read(header[1] + 5 - 2).hex()
+        payload_hex = payload.hex()
 
         logging.debug("send %s %s", header_hex, payload_hex)
         socket.send_string(f"{CH} {header_hex} {payload_hex}")
@@ -91,7 +122,7 @@ def start_client(server_host, server_port, handle, func):
             break
 
         try:
-            ch, header_hex, payload_hex = socket.recv_string().split(" ", 2)
+            _ch, header_hex, payload_hex = socket.recv_string().split(" ", 2)
             logging.debug("recv %s %s", header_hex, payload_hex)
             func(handle, bytes.fromhex(header_hex), bytes.fromhex(payload_hex))
         except zmq.error.Again:

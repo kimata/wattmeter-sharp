@@ -18,6 +18,11 @@ device:
     define: device.example.yaml
     cache: data/dev_id.dat
 
+# 電力に掛ける補正倍率 (省略時は 1.5)。
+# device.yaml で「scale:」を指定するとデバイス毎に上書きできます。
+sensor:
+    watt_scale: 1.5
+
 metrics:
     data: data/metrics.db
 
