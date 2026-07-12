@@ -17,10 +17,9 @@ import os
 import pathlib
 import signal
 
+import sharp_hems.config
 import sharp_hems.notify
 import sharp_hems.serial_pubsub
-
-SCHEMA_CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config.schema"
 
 
 def sig_handler(num, frame):  # noqa: ARG001
@@ -39,9 +38,8 @@ def start(serial_port, server_port, liveness_file, config):
 
 
 ######################################################################
-if __name__ == "__main__":
+def main():
     import docopt
-    import my_lib.config
     import my_lib.logger
 
     args = docopt.docopt(__doc__)
@@ -53,10 +51,14 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file, SCHEMA_CONFIG)
+    config = sharp_hems.config.load(config_file)
 
     liveness_file = pathlib.Path(config["liveness"]["file"]["measure"])
 
     logging.info("Start server (serial: %s, port: %d)", serial_port, server_port)
 
     start(serial_port, server_port, liveness_file, config)
+
+
+if __name__ == "__main__":
+    main()

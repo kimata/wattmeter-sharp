@@ -6,15 +6,7 @@ import pathlib
 
 import my_lib.config
 
-
-def _find_schema():
-    # NOTE: リポジトリルート (src/sharp_hems/ の 2 つ上) を基準に探し、
-    # 見つからなければカレントディレクトリを試す
-    for base in (pathlib.Path(__file__).resolve().parents[2], pathlib.Path()):
-        schema = base / "device.schema"
-        if schema.exists():
-            return schema
-    return None
+import sharp_hems.config
 
 
 class DeviceRegistry:
@@ -35,7 +27,7 @@ class DeviceRegistry:
 
         logging.info("Load device list...")
 
-        self._dev_list = my_lib.config.load(dev_define_file, _find_schema())
+        self._dev_list = sharp_hems.config.validate_device_list(my_lib.config.load(dev_define_file))
         self._by_addr = {dev_info["addr"].lower(): dev_info for dev_info in self._dev_list}
         self._mtime = mtime
 

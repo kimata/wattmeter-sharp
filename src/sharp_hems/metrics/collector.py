@@ -21,9 +21,10 @@ RETENTION_DAYS_DEFAULT = 30
 class MetricsCollector:
     """センサーメトリクス収集クラス。"""
 
-    def __init__(self, db_path: Path):
+    def __init__(self, db_path: Path, retention_days: int = RETENTION_DAYS_DEFAULT):
         """コレクターを初期化します。"""
         self.db_path = db_path
+        self.retention_days = retention_days
         self._last_cleanup = 0.0
         self._init_database()
 
@@ -328,7 +329,7 @@ class MetricsCollector:
         candidates = [d for d in (summary_start, raw_start) if d is not None]
         return min(candidates) if candidates else None
 
-    def cleanup(self, retention_days: int = RETENTION_DAYS_DEFAULT, now: int | None = None):
+    def cleanup(self, retention_days: int | None = None, now: int | None = None):
         """
         古いハートビートを日次サマリーに畳み込んで削除します (B-8/F-2)。
 
@@ -338,6 +339,8 @@ class MetricsCollector:
           サマリーを残す (累計受信率が水増しされないようにするため)
         - 通信エラーはサマリー対象外なので retention_days の 3 倍で削除する
         """
+        if retention_days is None:
+            retention_days = self.retention_days
         if now is None:
             now = int(time.time())
 
@@ -416,7 +419,7 @@ class MetricsCollector:
 
             conn.execute("VACUUM")
 
-    def maybe_cleanup(self, retention_days: int = RETENTION_DAYS_DEFAULT):
+    def maybe_cleanup(self):
         """前回実行から 1 日以上経過していれば cleanup を実行します。"""
         now = time.time()
         if now - self._last_cleanup < 86400:
@@ -424,7 +427,7 @@ class MetricsCollector:
 
         self._last_cleanup = now
         try:
-            self.cleanup(retention_days, now=int(now))
+            self.cleanup(now=int(now))
         except sqlite3.Error:
             logging.exception("Failed to cleanup metrics")
 

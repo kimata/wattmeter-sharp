@@ -12,7 +12,6 @@ from unittest import mock
 import pytest
 
 CONFIG_FILE = "config.example.yaml"
-SCHEMA_CONFIG = "config.schema"
 
 
 class MockZMQSocket:
@@ -518,11 +517,9 @@ def server_port():
 
 @pytest.fixture(scope="session")
 def config():
-    import pathlib
+    import sharp_hems.config
 
-    import my_lib.config
-
-    return my_lib.config.load(CONFIG_FILE, pathlib.Path(SCHEMA_CONFIG))
+    return sharp_hems.config.load(CONFIG_FILE)
 
 
 def test_server_all_packets(server_port):  # noqa: C901

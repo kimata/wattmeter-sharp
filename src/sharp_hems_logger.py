@@ -24,13 +24,12 @@ import my_lib.fluentd_util
 import my_lib.footprint
 import my_lib.pretty
 
+import sharp_hems.config
 import sharp_hems.device
 import sharp_hems.notify
 import sharp_hems.serial_pubsub
 import sharp_hems.sniffer
 from sharp_hems.metrics.collector import MetricsCollector
-
-SCHEMA_CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config.schema"
 
 # グローバル変数として保持（シグナルハンドラで使用）
 _metrics_collector = None
@@ -151,9 +150,10 @@ def start(handle, server_host, server_port):
 
 
 ######################################################################
-if __name__ == "__main__":
+def main():
+    global _metrics_collector, _sender  # noqa: PLW0603
+
     import docopt
-    import my_lib.config
     import my_lib.logger
 
     args = docopt.docopt(__doc__)
@@ -169,7 +169,7 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file, SCHEMA_CONFIG)
+    config = sharp_hems.config.load(config_file)
 
     dev_define_file = pathlib.Path(config["device"]["define"])
     dev_cache_file = pathlib.Path(config["device"]["cache"])
@@ -192,7 +192,9 @@ if __name__ == "__main__":
     metrics_collector = None
     if "metrics" in config:
         metrics_db_path = pathlib.Path(config["metrics"]["data"])
-        metrics_collector = MetricsCollector(metrics_db_path)
+        metrics_collector = MetricsCollector(
+            metrics_db_path, retention_days=config["metrics"].get("retention_days", 30)
+        )
         _metrics_collector = metrics_collector  # グローバル変数に保存（シグナルハンドラ用）
         logging.info("Initialize metrics collector (db: %s)", metrics_db_path)
 
@@ -227,3 +229,7 @@ if __name__ == "__main__":
         handle["metrics_collector"] = metrics_collector
 
     start(handle, server_host, server_port)
+
+
+if __name__ == "__main__":
+    main()

@@ -15,14 +15,12 @@ Options:
 
 import logging
 import os
-import pathlib
 import time
 
+import sharp_hems.config
 import sharp_hems.notify
 import sharp_hems.packet_dump
 import sharp_hems.serial_pubsub
-
-SCHEMA_CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config.schema"
 
 start_time = None
 packet_count = 0
@@ -53,9 +51,8 @@ def start(handle, server_host, server_port, config):
 
 
 ######################################################################
-if __name__ == "__main__":
+def main():
     import docopt
-    import my_lib.config
     import my_lib.logger
 
     args = docopt.docopt(__doc__)
@@ -68,8 +65,12 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file, SCHEMA_CONFIG)
+    config = sharp_hems.config.load(config_file)
 
     logging.info("Start HEMS dump (server: %s:%d, output: %s)", server_host, server_port, dump_file)
 
     start({"dump_file": dump_file}, server_host, server_port, config)
+
+
+if __name__ == "__main__":
+    main()

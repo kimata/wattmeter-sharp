@@ -31,7 +31,7 @@ def check_liveness(target_list, port=None):
 
 
 ######################################################################
-if __name__ == "__main__":
+def main():
     import os
 
     import docopt
@@ -63,3 +63,7 @@ if __name__ == "__main__":
         sys.exit(0)
     else:
         sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

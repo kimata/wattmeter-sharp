@@ -15,9 +15,8 @@ import pathlib
 
 import my_lib.sensor_data
 
+import sharp_hems.config
 import sharp_hems.device
-
-SCHEMA_CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config.schema"
 
 
 def hems_status_check(config, dev_define_file):
@@ -42,9 +41,8 @@ def hems_status_check(config, dev_define_file):
 
 
 ######################################################################
-if __name__ == "__main__":
+def main():
     import docopt
-    import my_lib.config
     import my_lib.logger
 
     args = docopt.docopt(__doc__)
@@ -54,8 +52,12 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file, SCHEMA_CONFIG)
+    config = sharp_hems.config.load(config_file)
 
     dev_define_file = pathlib.Path(config["device"]["define"])
 
     hems_status_check(config, dev_define_file)
+
+
+if __name__ == "__main__":
+    main()

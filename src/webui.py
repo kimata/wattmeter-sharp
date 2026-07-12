@@ -12,17 +12,15 @@ Options:
 """
 
 import logging
-import pathlib
 import signal
 import sys
 
 import flask
 import flask_cors
-import my_lib.config
 import my_lib.logger
 import my_lib.proc_util
 
-SCHEMA_CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config.schema"
+import sharp_hems.config
 
 
 def term():
@@ -77,7 +75,7 @@ def create_app(config):
     return app
 
 
-if __name__ == "__main__":
+def main():
     import docopt
 
     args = docopt.docopt(__doc__)
@@ -88,7 +86,7 @@ if __name__ == "__main__":
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
 
-    config = my_lib.config.load(config_file, pathlib.Path(SCHEMA_CONFIG))
+    config = sharp_hems.config.load(config_file)
 
     app = create_app(config)
 
@@ -96,8 +94,12 @@ if __name__ == "__main__":
 
     # Flaskアプリケーションを実行
     try:
-        # NOTE: スクリプトの自動リロード停止したい場合は use_reloader=False にする
-        app.run(host="0.0.0.0", port=port, threaded=True, use_reloader=True, debug=debug_mode)  # noqa: S104
+        # NOTE: 本番ではファイル監視の子プロセスを作らないよう、リロードはデバッグ時のみ
+        app.run(host="0.0.0.0", port=port, threaded=True, use_reloader=debug_mode, debug=debug_mode)  # noqa: S104
     except KeyboardInterrupt:
         logging.info("Received KeyboardInterrupt, shutting down...")
         sig_handler(signal.SIGINT, None)
+
+
+if __name__ == "__main__":
+    main()

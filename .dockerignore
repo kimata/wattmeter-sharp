@@ -2,3 +2,18 @@
 .venv/
 .mypy_cache/
 .pytest_cache/
+__pycache__/
+
+# イメージに不要なもの
+tests/
+img/
+.github/
+frontend/node_modules/
+frontend/src/
+frontend/public/
+wattmeter-config/
+config.example.yaml
+device.example.yaml
+IMPROVE.html
+packet.old
+*.dump

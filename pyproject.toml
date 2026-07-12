@@ -49,8 +49,25 @@ source = "vcs"
 [tool.hatch.version.raw-options]
 fallback_version = "0.0.0"
 
+[project.scripts]
+wattmeter-logger = "sharp_hems_logger:main"
+wattmeter-server = "sharp_hems_server:main"
+wattmeter-dump = "sharp_hems_dump:main"
+wattmeter-status = "sharp_hems_status:main"
+wattmeter-healthz = "healthz:main"
+wattmeter-webui = "webui:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/sharp_hems"]
+
+# NOTE: エントリポイント用に、src/ 直下のスクリプトをトップレベルモジュールとして含める
+[tool.hatch.build.targets.wheel.force-include]
+"src/sharp_hems_logger.py" = "sharp_hems_logger.py"
+"src/sharp_hems_server.py" = "sharp_hems_server.py"
+"src/sharp_hems_dump.py" = "sharp_hems_dump.py"
+"src/sharp_hems_status.py" = "sharp_hems_status.py"
+"src/healthz.py" = "healthz.py"
+"src/webui.py" = "webui.py"
 
 [tool.hatch.metadata]
 allow-direct-references = true

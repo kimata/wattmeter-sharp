@@ -39,4 +39,9 @@ WORKDIR /opt/wattmeter-sharp
 
 COPY . .
 
+# NOTE: 既定の CMD (logger) 用のヘルスチェック。liveness ファイルの鮮度を確認する。
+# webui 等で実行する場合は --no-healthcheck か別途上書きする。
+HEALTHCHECK --interval=5m --timeout=30s --start-period=10m --retries=2 \
+    CMD ["./src/healthz.py"]
+
 CMD ["./src/sharp_hems_logger.py"]
