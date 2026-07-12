@@ -3,6 +3,7 @@
 import datetime
 import logging
 import threading
+import time
 from pathlib import Path
 
 import flask
@@ -106,11 +107,11 @@ def sensor_stat():
         sharp_hems.device.reload(device_define_file)
         sensor_names = sharp_hems.device.get_list()
 
-        # 現在日付を取得 (将来の拡張用に準備)
-        # today = datetime.datetime.now(datetime.UTC).date()
-
-        # メトリクス収集開始日を取得（最初のレコード日付）
-        start_date = _get_metrics_start_date(collector)
+        # メトリクス収集開始日を取得（日次サマリーと生データの古い方）
+        now = int(time.time())
+        start_date = collector.get_start_date()
+        if start_date is None:
+            start_date = datetime.datetime.now(datetime.UTC).date().strftime("%Y-%m-%d")
 
         # 各センサーのメトリクス情報を収集
         sensors_metrics = []
@@ -124,11 +125,9 @@ def sensor_stat():
                 jst_datetime = utc_datetime.astimezone(my_lib.time.get_zoneinfo())
                 last_received = jst_datetime.strftime("%Y-%m-%d %H:%M:%S")
 
-            # 累計の稼働率を計算
-            total_availability = _calculate_total_availability(collector, sensor_name, start_date)
-
-            # 過去24時間の稼働率を計算
-            last_24h_availability = _calculate_last_24h_availability(collector, sensor_name)
+            # 累計と過去24時間の受信率を計算
+            total_availability = collector.calculate_total_availability(sensor_name, now)
+            last_24h_availability = collector.calculate_availability_between(sensor_name, now - 86400, now)
 
             sensors_metrics.append(
                 {
@@ -147,209 +146,3 @@ def sensor_stat():
     except Exception as e:
         logging.exception("Failed to get metrics")
         flask.abort(500, f"Failed to get metrics: {e!s}")
-
-
-def _get_metrics_start_date(collector: MetricsCollector) -> str:
-    """
-    メトリクス収集の開始日を取得します。
-
-    Args:
-        collector: MetricsCollectorインスタンス
-
-    Returns:
-        開始日（YYYY-MM-DD形式）、データがない場合は今日の日付
-
-    """
-    with collector.get_connection() as conn:
-        cursor = conn.execute("""
-            SELECT MIN(timestamp) FROM sensor_heartbeats
-        """)
-
-        result = cursor.fetchone()
-        if result and result[0] is not None:
-            earliest_timestamp = result[0]
-            earliest_date = datetime.datetime.fromtimestamp(earliest_timestamp, datetime.UTC).date()
-            return earliest_date.strftime("%Y-%m-%d")
-        else:
-            # データがない場合は今日の日付を返す
-            return datetime.datetime.now(datetime.UTC).date().strftime("%Y-%m-%d")
-
-
-def _calculate_total_availability(collector: MetricsCollector, sensor_name: str, _start_date: str) -> float:
-    """
-    データ収集開始から現在までの累計稼働率を計算します。
-
-    現在のタイムスロットでデータを受信していれば、そのスロットも稼働率に含める。
-
-    Args:
-        collector: MetricsCollectorインスタンス
-        sensor_name: センサー名
-        start_date: データ収集開始日（YYYY-MM-DD形式）
-
-    Returns:
-        累計稼働率（%）
-
-    """
-    # 実際のデータ開始時刻を取得
-    with collector.get_connection() as conn:
-        cursor = conn.execute(
-            """
-            SELECT MIN(timestamp) FROM sensor_heartbeats
-            WHERE sensor_name = ?
-        """,
-            (sensor_name,),
-        )
-
-        result = cursor.fetchone()
-        if result and result[0] is not None:
-            actual_start_timestamp = result[0]
-        else:
-            # データがない場合は0%
-            return 0.0
-
-    # 現在時刻
-    now = datetime.datetime.now(datetime.UTC)
-    current_timestamp = int(now.timestamp())
-
-    # タイムスロット範囲を計算
-    start_slot = actual_start_timestamp // 360
-    current_slot = current_timestamp // 360
-
-    # 現在のスロットでデータを受信しているかチェック
-    with collector.get_connection() as conn:
-        cursor = conn.execute(
-            """
-            SELECT COUNT(*) FROM sensor_heartbeats
-            WHERE sensor_name = ? AND time_slot = ?
-        """,
-            (sensor_name, current_slot),
-        )
-
-        has_current_slot_data = cursor.fetchone()[0] > 0
-
-    # 期待されるタイムスロット数を計算
-    if has_current_slot_data:
-        # 現在のスロットでデータを受信している場合、そのスロットも含める
-        expected_slots = current_slot - start_slot + 1
-        end_slot = current_slot
-    else:
-        # 現在のスロットでデータを受信していない場合、前のスロットまで
-        expected_slots = current_slot - start_slot
-        end_slot = current_slot - 1
-
-        # 期待スロット数が0以下になる場合の対処
-        if expected_slots <= 0:
-            expected_slots = 1
-            end_slot = start_slot
-
-    # 実際に受信したタイムスロット数
-    with collector.get_connection() as conn:
-        cursor = conn.execute(
-            """
-            SELECT COUNT(DISTINCT time_slot)
-            FROM sensor_heartbeats
-            WHERE sensor_name = ?
-            AND time_slot >= ?
-            AND time_slot <= ?
-        """,
-            (sensor_name, start_slot, end_slot),
-        )
-
-        received_slots = cursor.fetchone()[0]
-
-    if expected_slots <= 0:
-        return 0.0
-
-    return round((received_slots / expected_slots) * 100, 2)
-
-
-def _calculate_last_24h_availability(collector: MetricsCollector, sensor_name: str) -> float:
-    """
-    過去24時間の稼働率を計算します。
-
-    現在のタイムスロットでデータを受信していれば、そのスロットも稼働率に含める。
-
-    Args:
-        collector: MetricsCollectorインスタンス
-        sensor_name: センサー名
-
-    Returns:
-        過去24時間の稼働率（%）
-
-    """
-    now = datetime.datetime.now(datetime.UTC)
-    current_timestamp = int(now.timestamp())
-
-    # データ開始時刻を取得
-    with collector.get_connection() as conn:
-        cursor = conn.execute(
-            """
-            SELECT MIN(timestamp) FROM sensor_heartbeats
-            WHERE sensor_name = ?
-        """,
-            (sensor_name,),
-        )
-
-        result = cursor.fetchone()
-        if result and result[0] is not None:
-            data_start_timestamp = result[0]
-        else:
-            # データがない場合は0%
-            return 0.0
-
-    # 24時間前の時刻
-    yesterday_timestamp = current_timestamp - 86400  # 24時間 = 86400秒
-
-    # 実際の開始時刻（データ開始時刻と24時間前のうち、より新しい方）
-    actual_start_timestamp = max(data_start_timestamp, yesterday_timestamp)
-
-    # タイムスロット範囲を計算
-    start_slot = actual_start_timestamp // 360
-    current_slot = current_timestamp // 360
-
-    # 現在のスロットでデータを受信しているかチェック
-    with collector.get_connection() as conn:
-        cursor = conn.execute(
-            """
-            SELECT COUNT(*) FROM sensor_heartbeats
-            WHERE sensor_name = ? AND time_slot = ?
-        """,
-            (sensor_name, current_slot),
-        )
-
-        has_current_slot_data = cursor.fetchone()[0] > 0
-
-    # 期待されるタイムスロット数を計算
-    if has_current_slot_data:
-        # 現在のスロットでデータを受信している場合、そのスロットも含める
-        expected_slots = current_slot - start_slot + 1
-        end_slot = current_slot
-    else:
-        # 現在のスロットでデータを受信していない場合、前のスロットまで
-        expected_slots = current_slot - start_slot
-        end_slot = current_slot - 1
-
-        # 期待スロット数が0以下になる場合の対処
-        if expected_slots <= 0:
-            expected_slots = 1
-            end_slot = start_slot
-
-    # 実際に受信したタイムスロット数
-    with collector.get_connection() as conn:
-        cursor = conn.execute(
-            """
-            SELECT COUNT(DISTINCT time_slot)
-            FROM sensor_heartbeats
-            WHERE sensor_name = ?
-            AND time_slot >= ?
-            AND time_slot <= ?
-        """,
-            (sensor_name, start_slot, end_slot),
-        )
-
-        received_slots = cursor.fetchone()[0]
-
-    if expected_slots <= 0:
-        return 0.0
-
-    return round((received_slots / expected_slots) * 100, 2)

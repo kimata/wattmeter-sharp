@@ -10,6 +10,13 @@ from pathlib import Path
 import my_lib.sqlite_util
 import my_lib.time
 
+# タイムスロットの長さ (秒)。センサーの送信周期 (約 6 分) に対応する。
+TIME_SLOT_SEC = 360
+SLOTS_PER_DAY = 86400 // TIME_SLOT_SEC
+
+# 生ハートビートの保持日数。これより古い分は日次サマリーに畳み込まれる。
+RETENTION_DAYS_DEFAULT = 30
+
 
 class MetricsCollector:
     """センサーメトリクス収集クラス。"""
@@ -17,6 +24,7 @@ class MetricsCollector:
     def __init__(self, db_path: Path):
         """コレクターを初期化します。"""
         self.db_path = db_path
+        self._last_cleanup = 0.0
         self._init_database()
 
     def close(self):
@@ -187,81 +195,238 @@ class MetricsCollector:
             result = cursor.fetchone()
             return result[0] if result and result[0] is not None else None
 
-    def calculate_availability(self, sensor_name: str, date: str) -> dict:
-        """
-        指定された日のセンサーの可用性を計算します。
+    def get_first_heartbeat(self, sensor_name: str | None = None) -> int | None:
+        """最古のハートビート時刻を取得します (sensor_name 省略時は全センサー)。"""
+        with self._get_connection() as conn:
+            if sensor_name is None:
+                cursor = conn.execute("SELECT MIN(timestamp) FROM sensor_heartbeats")
+            else:
+                cursor = conn.execute(
+                    "SELECT MIN(timestamp) FROM sensor_heartbeats WHERE sensor_name = ?",
+                    (sensor_name,),
+                )
+            result = cursor.fetchone()
+            return result[0] if result and result[0] is not None else None
 
-        Args:
-            sensor_name: センサー名
-            date: 日付（YYYY-MM-DD形式）
+    def _get_summary_totals(self, sensor_name: str) -> tuple[int, int, str | None]:
+        """日次サマリーの (期待スロット合計, 受信スロット合計, 最終日付) を返します。"""
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                """
+                SELECT COALESCE(SUM(total_expected), 0), COALESCE(SUM(total_received), 0), MAX(date)
+                FROM sensor_availability
+                WHERE sensor_name = ?
+                """,
+                (sensor_name,),
+            )
+            expected, received, last_date = cursor.fetchone()
+            return expected, received, last_date
 
-        Returns:
-            可用性情報を含む辞書
-
-        """
-        # 1日は24時間 * 60分 / 6分 = 240スロット
-        expected_slots = 240
-
-        # 指定日の開始と終了のタイムスロットを計算
-
-        date_obj = datetime.datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=datetime.UTC)
-        start_timestamp = int(date_obj.timestamp())
-        end_timestamp = start_timestamp + 86400  # 24時間後
-
-        start_slot = start_timestamp // 360
-        end_slot = end_timestamp // 360
-
+    def _count_slots(self, sensor_name: str, start_slot: int, end_slot: int) -> int:
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
                 SELECT COUNT(DISTINCT time_slot)
                 FROM sensor_heartbeats
-                WHERE sensor_name = ?
-                AND time_slot >= ?
-                AND time_slot < ?
-            """,
+                WHERE sensor_name = ? AND time_slot >= ? AND time_slot <= ?
+                """,
                 (sensor_name, start_slot, end_slot),
             )
+            return cursor.fetchone()[0]
 
-            received_slots = cursor.fetchone()[0]
-
-        availability_percent = (received_slots / expected_slots) * 100
-
-        return {
-            "sensor_name": sensor_name,
-            "date": date,
-            "total_expected": expected_slots,
-            "total_received": received_slots,
-            "availability_percent": round(availability_percent, 2),
-        }
-
-    def update_availability_summary(self, sensor_name: str, date: str):
+    def _raw_slot_stats(self, sensor_name: str, start_timestamp: int, end_timestamp: int):
         """
-        指定された日のセンサーの可用性サマリーを更新します。
+        生ハートビートから (期待スロット数, 受信スロット数) を計算します。
 
-        Args:
-            sensor_name: センサー名
-            date: 日付（YYYY-MM-DD形式）
-
+        現在のタイムスロットは、そのスロットでデータを受信している場合のみ期待に含める。
         """
-        availability = self.calculate_availability(sensor_name, date)
+        start_slot = start_timestamp // TIME_SLOT_SEC
+        current_slot = end_timestamp // TIME_SLOT_SEC
+
+        has_current_slot_data = self._count_slots(sensor_name, current_slot, current_slot) > 0
+
+        if has_current_slot_data:
+            expected_slots = current_slot - start_slot + 1
+            end_slot = current_slot
+        else:
+            expected_slots = current_slot - start_slot
+            end_slot = current_slot - 1
+
+            if expected_slots <= 0:
+                expected_slots = 1
+                end_slot = start_slot
+
+        received_slots = self._count_slots(sensor_name, start_slot, end_slot)
+        return expected_slots, received_slots
+
+    def calculate_availability_between(
+        self, sensor_name: str, start_timestamp: int, end_timestamp: int
+    ) -> float:
+        """
+        指定期間の受信率 (%) を生ハートビートから計算します。
+
+        センサーのデータ開始が期間より遅い場合は、データ開始以降のみを期待値とする。
+        期間は retention 期間内である必要がある (それより古い部分は日次サマリーに
+        畳み込まれているため)。
+        """
+        first_timestamp = self.get_first_heartbeat(sensor_name)
+        if first_timestamp is None:
+            return 0.0
+
+        actual_start = max(start_timestamp, first_timestamp)
+        if actual_start >= end_timestamp:
+            return 0.0
+
+        expected_slots, received_slots = self._raw_slot_stats(sensor_name, actual_start, end_timestamp)
+        if expected_slots <= 0:
+            return 0.0
+
+        return round((received_slots / expected_slots) * 100, 2)
+
+    def calculate_total_availability(self, sensor_name: str, end_timestamp: int) -> float:
+        """
+        データ収集開始から現在までの累計受信率 (%) を計算します。
+
+        retention で畳み込まれた日次サマリーと、残っている生ハートビートを合算する。
+        """
+        summary_expected, summary_received, summary_last_date = self._get_summary_totals(sensor_name)
+
+        # 生データの計算開始点: サマリーがあればその翌日 0 時 (UTC)、無ければデータ開始
+        if summary_last_date is not None:
+            last_date = datetime.datetime.strptime(summary_last_date, "%Y-%m-%d").replace(tzinfo=datetime.UTC)
+            raw_start = int(last_date.timestamp()) + 86400
+        else:
+            raw_start = self.get_first_heartbeat(sensor_name)
+
+        raw_expected = 0
+        raw_received = 0
+        if raw_start is not None and raw_start < end_timestamp:
+            raw_expected, raw_received = self._raw_slot_stats(sensor_name, raw_start, end_timestamp)
+
+        total_expected = summary_expected + raw_expected
+        total_received = summary_received + raw_received
+
+        if total_expected <= 0:
+            return 0.0
+
+        return round((total_received / total_expected) * 100, 2)
+
+    def get_start_date(self) -> str | None:
+        """メトリクス収集の開始日 (YYYY-MM-DD、UTC) を返します。"""
+        with self._get_connection() as conn:
+            cursor = conn.execute("SELECT MIN(date) FROM sensor_availability")
+            result = cursor.fetchone()
+            summary_start = result[0] if result else None
+
+        first_timestamp = self.get_first_heartbeat()
+        raw_start = (
+            datetime.datetime.fromtimestamp(first_timestamp, datetime.UTC).strftime("%Y-%m-%d")
+            if first_timestamp is not None
+            else None
+        )
+
+        candidates = [d for d in (summary_start, raw_start) if d is not None]
+        return min(candidates) if candidates else None
+
+    def cleanup(self, retention_days: int = RETENTION_DAYS_DEFAULT, now: int | None = None):
+        """
+        古いハートビートを日次サマリーに畳み込んで削除します (B-8/F-2)。
+
+        - retention_days より古い UTC 日付のハートビートは、センサー毎の日次サマリー
+          (sensor_availability) に集約してから削除する
+        - データが 1 件も無い日も、そのセンサーのデータ開始後であれば received=0 の
+          サマリーを残す (累計受信率が水増しされないようにするため)
+        - 通信エラーはサマリー対象外なので retention_days の 3 倍で削除する
+        """
+        if now is None:
+            now = int(time.time())
+
+        # NOTE: 24 時間受信率の計算が生データだけで完結するよう、最低 2 日は残す
+        retention_days = max(retention_days, 2)
+
+        boundary = datetime.datetime.fromtimestamp(now, datetime.UTC).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) - datetime.timedelta(days=retention_days)
+        boundary_ts = int(boundary.timestamp())
 
         with self._get_connection() as conn:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO sensor_availability
-                (sensor_name, date, total_expected, total_received, availability_percent)
-                VALUES (?, ?, ?, ?, ?)
-            """,
-                (
-                    availability["sensor_name"],
-                    availability["date"],
-                    availability["total_expected"],
-                    availability["total_received"],
-                    availability["availability_percent"],
-                ),
+            cursor = conn.execute(
+                "SELECT COUNT(*) FROM sensor_heartbeats WHERE timestamp < ?", (boundary_ts,)
             )
+            if cursor.fetchone()[0] == 0:
+                return
+
+            # 対象センサー毎に、データ開始日から boundary 前日までの日次サマリーを作成
+            cursor = conn.execute(
+                "SELECT sensor_name, MIN(timestamp) FROM sensor_heartbeats GROUP BY sensor_name"
+            )
+            sensor_first = dict(cursor.fetchall())
+
+            for sensor_name, first_ts in sensor_first.items():
+                first_day = datetime.datetime.fromtimestamp(first_ts, datetime.UTC).replace(
+                    hour=0, minute=0, second=0, microsecond=0
+                )
+                day = first_day
+                while day < boundary:
+                    day_start_slot = int(day.timestamp()) // TIME_SLOT_SEC
+                    day_end_slot = day_start_slot + SLOTS_PER_DAY - 1
+
+                    cursor = conn.execute(
+                        """
+                        SELECT COUNT(DISTINCT time_slot) FROM sensor_heartbeats
+                        WHERE sensor_name = ? AND time_slot >= ? AND time_slot <= ?
+                        """,
+                        (sensor_name, day_start_slot, day_end_slot),
+                    )
+                    received = cursor.fetchone()[0]
+
+                    date_str = day.strftime("%Y-%m-%d")
+                    conn.execute(
+                        """
+                        INSERT INTO sensor_availability
+                        (sensor_name, date, total_expected, total_received, availability_percent)
+                        VALUES (?, ?, ?, ?, ?)
+                        ON CONFLICT(sensor_name, date) DO NOTHING
+                        """,
+                        (
+                            sensor_name,
+                            date_str,
+                            SLOTS_PER_DAY,
+                            received,
+                            round(received / SLOTS_PER_DAY * 100, 2),
+                        ),
+                    )
+                    day += datetime.timedelta(days=1)
+
+            deleted_heartbeats = conn.execute(
+                "DELETE FROM sensor_heartbeats WHERE timestamp < ?", (boundary_ts,)
+            ).rowcount
+            deleted_errors = conn.execute(
+                "DELETE FROM communication_errors WHERE timestamp < ?",
+                (now - retention_days * 3 * 86400,),
+            ).rowcount
             conn.commit()
+
+            logging.info(
+                "Cleanup metrics: folded %d heartbeats and %d errors older than %s",
+                deleted_heartbeats,
+                deleted_errors,
+                boundary.strftime("%Y-%m-%d"),
+            )
+
+            conn.execute("VACUUM")
+
+    def maybe_cleanup(self, retention_days: int = RETENTION_DAYS_DEFAULT):
+        """前回実行から 1 日以上経過していれば cleanup を実行します。"""
+        now = time.time()
+        if now - self._last_cleanup < 86400:
+            return
+
+        self._last_cleanup = now
+        try:
+            self.cleanup(retention_days, now=int(now))
+        except sqlite3.Error:
+            logging.exception("Failed to cleanup metrics")
 
     def _detect_communication_errors(self, sensor_name: str, current_slot: int):
         """

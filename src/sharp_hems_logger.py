@@ -52,6 +52,9 @@ def record_metrics(metrics_collector, data):
         if name is not None:
             metrics_collector.record_heartbeat(name)
             logging.debug("Recorded metrics for %s", name)
+
+        # NOTE: 古いハートビートの日次サマリーへの畳み込み (1日1回)
+        metrics_collector.maybe_cleanup()
     except Exception:
         logging.exception("Failed to record metrics")
 
