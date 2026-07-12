@@ -27,6 +27,26 @@ def parse_packet_ieee_addr(packet):
     return ":".join(f"{x:02X}" for x in reversed(list(packet[4:12])))
 
 
+def read_dev_id_map(dev_cache_file):
+    """
+    dev_id キャッシュを読み込み、(dev_id_map, is_legacy_format) を返す。
+
+    JSON 形式を優先し、旧フォーマット (pickle) にもフォールバックする。
+    """
+    dev_cache_file = pathlib.Path(dev_cache_file)
+    if not dev_cache_file.exists():
+        return {}, False
+
+    raw = dev_cache_file.read_bytes()
+
+    try:
+        return {int(dev_id): addr for dev_id, addr in json.loads(raw).items()}, False
+    except (ValueError, UnicodeDecodeError):
+        pass
+
+    return pickle.loads(raw), True  # noqa: S301
+
+
 def parse_packet_dev_id(packet):
     dev_id = struct.unpack("<H", packet[4:6])[0]
     index = packet[6]
@@ -60,26 +80,18 @@ class PacketSniffer:
     # ---------- dev_id キャッシュ ----------
 
     def _load_dev_id_map(self):
-        if not self.dev_cache_file.exists():
-            return {}
-
-        raw = self.dev_cache_file.read_bytes()
-
         try:
-            return {int(dev_id): addr for dev_id, addr in json.loads(raw).items()}
-        except (ValueError, UnicodeDecodeError):
-            pass
-
-        try:
-            # NOTE: 旧フォーマット (pickle) からの移行
-            dev_id_map = pickle.loads(raw)  # noqa: S301
-            logging.info("Migrate dev_id_map from pickle to JSON")
-            self._store_dev_id_map(dev_id_map)
+            dev_id_map, is_legacy = read_dev_id_map(self.dev_cache_file)
         except Exception:
             logging.exception("Failed to load dev_id_map, starting fresh")
             return {}
-        else:
-            return dev_id_map
+
+        if is_legacy:
+            # NOTE: 旧フォーマット (pickle) からの移行
+            logging.info("Migrate dev_id_map from pickle to JSON")
+            self._store_dev_id_map(dev_id_map)
+
+        return dev_id_map
 
     def _store_dev_id_map(self, dev_id_map=None):
         if dev_id_map is None:

@@ -4,6 +4,7 @@
 
 Usage:
   sharp_hems_logger.py [-c CONFIG] [-s SERVER_HOST] [-p SERVER_PORT] [-n COUNT] [-d] [-D]
+  sharp_hems_logger.py [-c CONFIG] --replay FILE [-n COUNT] [-D]
 
 Options:
   -c CONFIG         : 設定ファイルを指定します。 [default: config.yaml]
@@ -11,6 +12,7 @@ Options:
   -p SERVER_PORT    : ZeroMQ の Pub サーバーを動作させるポートを指定します。 [default: 4444]
   -n COUNT          : n 回制御メッセージを受信したら終了します。0 は制限なし。 [default: 0]
   -d                : ダミーモードで動作します。
+  --replay FILE     : packet.dump を再生して動作します (ハードウェア不要、ダミーモード固定)。
   -D                : デバッグモードで動作します。
 """
 
@@ -27,8 +29,10 @@ import my_lib.pretty
 import sharp_hems.config
 import sharp_hems.device
 import sharp_hems.notify
+import sharp_hems.packet_dump
 import sharp_hems.serial_pubsub
 import sharp_hems.sniffer
+import sharp_hems.watchdog
 from sharp_hems.metrics.collector import MetricsCollector
 
 # グローバル変数として保持（シグナルハンドラで使用）
@@ -98,6 +102,9 @@ def process_packet(handle, header, payload):
             # メトリクス収集も記録
             if "metrics_collector" in handle:
                 record_metrics(handle["metrics_collector"], data)
+            # デバイスの無応答監視
+            if "watchdog" in handle:
+                handle["watchdog"].check()
 
     sharp_hems.sniffer.process_packet(handle, header, payload, on_data_received)
 
@@ -139,6 +146,19 @@ def sig_handler(num, frame):  # noqa: ARG001
         sys.exit(0)
 
 
+def replay(handle, replay_file):
+    """packet.dump を再生してパケット処理を実行する (F-8)。"""
+    packets = sharp_hems.packet_dump.load(replay_file)
+    logging.info("Replay %d packets from %s", len(packets), replay_file)
+
+    for _, header, payload in packets:
+        process_packet(handle, header, payload)
+        if (handle["packet"]["max"] != 0) and (handle["packet"]["count"] >= handle["packet"]["max"]):
+            break
+
+    logging.info("Replay finished (%d packets processed)", handle["packet"]["count"])
+
+
 def start(handle, server_host, server_port):
     try:
         sharp_hems.serial_pubsub.start_client(server_host, server_port, handle, process_packet)
@@ -162,9 +182,13 @@ def main():
     server_host = os.environ.get("HEMS_SERVER_HOST", args["-s"])
     server_port = int(os.environ.get("HEMS_SERVER_PORT", args["-p"]))
     count = int(args["-n"])
+    replay_file = args["--replay"]
     dummy_mode = env_flag("DUMMY_MODE")
     if dummy_mode is None:
         dummy_mode = args["-d"]
+    if replay_file is not None:
+        # NOTE: 再生時に誤って本番データを送信しないよう、ダミーモード固定にする
+        dummy_mode = True
     debug_mode = args["-D"]
 
     my_lib.logger.init("hems.wattmeter-sharp", level=logging.DEBUG if debug_mode else logging.INFO)
@@ -180,13 +204,17 @@ def main():
     if dummy_mode:
         logging.info("DUMMY MODE")
 
-    logging.info(
-        "Initialize Fluentd sender (host: %s, tag: %s)",
-        config["fluentd"]["host"],
-        config["fluentd"]["data"]["tag"],
-    )
-    sender = my_lib.fluentd_util.get_handle(config["fluentd"]["data"]["tag"], host=config["fluentd"]["host"])
-    _sender = sender  # グローバル変数に保存（シグナルハンドラ用）
+    sender = None
+    if replay_file is None:
+        logging.info(
+            "Initialize Fluentd sender (host: %s, tag: %s)",
+            config["fluentd"]["host"],
+            config["fluentd"]["data"]["tag"],
+        )
+        sender = my_lib.fluentd_util.get_handle(
+            config["fluentd"]["data"]["tag"], host=config["fluentd"]["host"]
+        )
+        _sender = sender  # グローバル変数に保存（シグナルハンドラ用）
 
     # メトリクスコレクターを初期化
     metrics_collector = None
@@ -228,7 +256,18 @@ def main():
     if metrics_collector:
         handle["metrics_collector"] = metrics_collector
 
-    start(handle, server_host, server_port)
+        # デバイス無応答の監視 (Slack 通知)
+        alert_config = config.get("alert", {})
+        handle["watchdog"] = sharp_hems.watchdog.DeviceWatchdog(
+            config,
+            metrics_collector,
+            timeout_min=alert_config.get("timeout_min", sharp_hems.watchdog.TIMEOUT_MIN_DEFAULT),
+        )
+
+    if replay_file is not None:
+        replay(handle, replay_file)
+    else:
+        start(handle, server_host, server_port)
 
 
 if __name__ == "__main__":

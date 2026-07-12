@@ -50,6 +50,7 @@ def create_app(config):
     import my_lib.webapp.config
     import my_lib.webapp.util
 
+    import sharp_hems.webui.api.device
     import sharp_hems.webui.api.metrics
     import sharp_hems.webui.api.power
 
@@ -69,6 +70,7 @@ def create_app(config):
     app.register_blueprint(my_lib.webapp.util.blueprint, url_prefix=URL_PREFIX)
     app.register_blueprint(sharp_hems.webui.api.metrics.blueprint, url_prefix=URL_PREFIX)
     app.register_blueprint(sharp_hems.webui.api.power.blueprint, url_prefix=URL_PREFIX)
+    app.register_blueprint(sharp_hems.webui.api.device.blueprint, url_prefix=URL_PREFIX)
 
     my_lib.webapp.config.show_handler_list(app)
 

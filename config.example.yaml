@@ -37,3 +37,14 @@ webapp:
 liveness:
     file:
         measure: /dev/shm/healthz
+
+# デバイス無応答時の Slack アラート (省略可)
+# alert:
+#     timeout_min: 30
+
+# watt_scale 較正用のスマートメータ実測値の場所 (省略可、wattmeter-calibrate で使用)
+# calibration:
+#     smartmeter:
+#         measure: sensor.rasp
+#         hostname: smartmeter
+#         field: power

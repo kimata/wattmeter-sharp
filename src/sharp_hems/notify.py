@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-エラーを Slack で通知します。
+エラーやアラートを Slack で通知します。
 
 Usage:
   notify.py [-c CONFIG] [-D]
@@ -15,18 +15,33 @@ import traceback
 
 import my_lib.notify.slack
 
+NOTIFY_TITLE = "wattmeter-sharp"
+
+
+def _parse_slack_config(config):
+    return my_lib.notify.slack.SlackConfig.parse(config.get("slack", {}))
+
 
 def error(config):
     logging.exception("Failed.")
 
-    if "slack" in config:
-        my_lib.notify.slack.error(
-            config["slack"]["bot_token"],
-            config["slack"]["error"]["channel"]["name"],
-            config["slack"]["from"],
-            traceback.format_exc(),
-            config["slack"]["error"]["interval_min"],
-        )
+    my_lib.notify.slack.error(_parse_slack_config(config), NOTIFY_TITLE, traceback.format_exc())
+
+
+def alert(config, message):
+    """デバイスの切断・復帰などのアラートを通知する。"""
+    logging.warning("Alert: %s", message)
+
+    slack_config = _parse_slack_config(config)
+    if isinstance(slack_config, my_lib.notify.slack.SlackEmptyConfig):
+        logging.warning("Slack is not configured, skip alert")
+        return
+
+    # NOTE: info チャンネルが設定されていればそちらへ、無ければ error チャンネルへ
+    if getattr(slack_config, "info", None) is not None:
+        my_lib.notify.slack.info(slack_config, NOTIFY_TITLE, message)
+    else:
+        my_lib.notify.slack.error(slack_config, NOTIFY_TITLE, message)
 
 
 if __name__ == "__main__":

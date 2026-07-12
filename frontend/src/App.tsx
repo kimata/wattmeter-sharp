@@ -8,6 +8,7 @@ import type {
     CommunicationErrorResponse,
     PowerCurrentResponse,
     PowerHistoryResponse,
+    UnknownDevicesResponse,
 } from "./types";
 import { useApi } from "./hooks/useApi";
 import { buildApiUrl, RANGE_OPTIONS, type RangeKey } from "./config/constants";
@@ -53,6 +54,10 @@ function App() {
     );
     const { data: commErrors } = useApi<CommunicationErrorResponse>(
         buildApiUrl("communication_errors"),
+        { interval: 300000 },
+    );
+    const { data: unknownDevices } = useApi<UnknownDevicesResponse>(
+        buildApiUrl("devices/unknown"),
         { interval: 300000 },
     );
 
@@ -170,6 +175,7 @@ function App() {
                     <ConnectionStatus
                         devices={devices}
                         errors={commErrors}
+                        unknownDevices={unknownDevices?.devices ?? []}
                         startDate={stat?.start_date ?? null}
                         nowSec={nowSec}
                     />

@@ -54,6 +54,7 @@ wattmeter-logger = "sharp_hems_logger:main"
 wattmeter-server = "sharp_hems_server:main"
 wattmeter-dump = "sharp_hems_dump:main"
 wattmeter-status = "sharp_hems_status:main"
+wattmeter-calibrate = "sharp_hems_calibrate:main"
 wattmeter-healthz = "healthz:main"
 wattmeter-webui = "webui:main"
 
@@ -66,6 +67,7 @@ packages = ["src/sharp_hems"]
 "src/sharp_hems_server.py" = "sharp_hems_server.py"
 "src/sharp_hems_dump.py" = "sharp_hems_dump.py"
 "src/sharp_hems_status.py" = "sharp_hems_status.py"
+"src/sharp_hems_calibrate.py" = "sharp_hems_calibrate.py"
 "src/healthz.py" = "healthz.py"
 "src/webui.py" = "webui.py"
 

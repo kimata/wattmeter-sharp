@@ -37,6 +37,15 @@ export interface PowerHistoryResponse {
     updated_at: number;
 }
 
+export interface UnknownDevice {
+    dev_id: string;
+    addr: string;
+}
+
+export interface UnknownDevicesResponse {
+    devices: UnknownDevice[];
+}
+
 export interface CommunicationError {
     sensor_name: string;
     datetime: string;

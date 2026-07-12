@@ -52,6 +52,20 @@ class SensorConfig(_Model):
     watt_scale: float = Field(default=1.5, gt=0)
 
 
+class AlertConfig(_Model):
+    timeout_min: int = Field(default=30, gt=0)
+
+
+class SmartMeterConfig(_Model):
+    measure: str
+    hostname: str
+    field: str = "power"
+
+
+class CalibrationConfig(_Model):
+    smartmeter: SmartMeterConfig
+
+
 class LivenessFileConfig(_Model):
     measure: str
 
@@ -69,6 +83,8 @@ class AppConfig(_Model):
     liveness: LivenessConfig
     webapp: dict
     sensor: SensorConfig | None = None
+    alert: AlertConfig | None = None
+    calibration: CalibrationConfig | None = None
 
 
 class DeviceEntry(_Model):

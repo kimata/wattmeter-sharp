@@ -3,12 +3,14 @@ import dayjs from "dayjs";
 import { SensorTable } from "./SensorTable";
 import { CommunicationErrorChart } from "./CommunicationErrorChart";
 import { CommunicationErrorTable } from "./CommunicationErrorTable";
+import { UnknownDevices } from "./UnknownDevices";
 import type { DeviceView } from "../App";
-import type { CommunicationErrorResponse } from "../types";
+import type { CommunicationErrorResponse, UnknownDevice } from "../types";
 
 interface ConnectionStatusProps {
     devices: DeviceView[];
     errors: CommunicationErrorResponse | null;
+    unknownDevices: UnknownDevice[];
     startDate: string | null;
     nowSec: number;
 }
@@ -16,6 +18,7 @@ interface ConnectionStatusProps {
 export function ConnectionStatus({
     devices,
     errors,
+    unknownDevices,
     startDate,
     nowSec,
 }: ConnectionStatusProps) {
@@ -58,6 +61,8 @@ export function ConnectionStatus({
                     </div>
                 </div>
             </section>
+
+            <UnknownDevices devices={unknownDevices} />
 
             <SensorTable devices={devices} nowSec={nowSec} />
 
